@@ -8,7 +8,7 @@ import whatsapp  # Import your whatsapp.py module
 MY_PERSONAL_WHATSAPP_NUMBER = 'whatsapp:+972547958073' # The number you will send messages FROM during the demo
 TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'      # Your Twilio WhatsApp number (receiving messages TO)
 
-POLLING_INTERVAL_SECONDS = 10 # How often to check for new messages (adjust as needed)
+POLLING_INTERVAL_SECONDS = 2 # How often to check for new messages (adjust as needed)
 
 # --- The Hardcoded AI Script ---
 def get_ai_response(user_message):
@@ -16,28 +16,20 @@ def get_ai_response(user_message):
     Determines the AI's response based on the user's message.
     This is where the hardcoded script logic lives.
     """
+    greetings = ["הי", "מה קורה", "שלום"]
+    order = ["להזמין", "הזמנה"]
     user_message_lower = user_message.lower().strip() # Make matching case-insensitive and remove whitespace
 
     print(f"   Processing received message: '{user_message_lower}'")
 
-    if any()
-    if "הי" in user_message_lower or "מה קורה" in user_message_lower:
-        return "Hello! This is the live WhatsApp demo AI. How may I assist?"
-    elif "how are you" in user_message_lower:
-        return "Running smoothly on this polling script! Ready for your next command."
-    elif "help" in user_message_lower or "what can you do" in user_message_lower:
-        return "I'm a demo script. I react to keywords like 'hello', 'how are you', 'project status', 'joke', or 'bye'."
-    elif "project status" in user_message_lower:
-        return "Demo Project Status: Active and responding via WhatsApp!"
-    elif "joke" in user_message_lower:
-        return "Why did the WhatsApp message blush? Because it saw the notification status change to 'read'! (Hardcoded humor!)"
-    elif "thank you" in user_message_lower or "thanks" in user_message_lower:
-        return "You're welcome! Happy to demonstrate."
-    elif "bye" in user_message_lower or "exit" in user_message_lower or "quit" in user_message_lower:
-        return "Acknowledged. Goodbye for now! (The script continues polling unless stopped manually)."
+    if any(word in user_message_lower for word in greetings):
+        return "היי נשמה, איך אפשר לעזור?"
+    elif any(word in user_message_lower for word in order):
+        return "אין בעיה. מה תרצה להזמין?"
+    
     else:
         # Default response if no keywords match
-        return f"I received '{user_message}', but my script doesn't have a specific reply for that. Try asking for 'help'."
+        return f"על מה אתה מדבר אחי"
 
 # --- Main Simulation Loop ---
 def run_whatsapp_polling_demo():
@@ -49,7 +41,11 @@ def run_whatsapp_polling_demo():
     print(f"Polling interval:          {POLLING_INTERVAL_SECONDS} seconds")
     print("Press Ctrl+C to stop the script.")
 
-    last_processed_message_sid = None
+    last_processed_message_sid = whatsapp.client.messages.list(
+                                    from_=MY_PERSONAL_WHATSAPP_NUMBER,
+                                    to=TWILIO_WHATSAPP_NUMBER,
+                                    limit=1 # We only need the very latest one
+                                )[0].sid
 
     while True:
         try:
@@ -63,6 +59,8 @@ def run_whatsapp_polling_demo():
                 to=TWILIO_WHATSAPP_NUMBER,
                 limit=1 # We only need the very latest one
             )
+
+            print("MESSAGES: ", messages)
 
             if not messages:
                 print("   No messages found from your number yet.")
