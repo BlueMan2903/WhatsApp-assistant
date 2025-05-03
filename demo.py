@@ -15,20 +15,25 @@ def get_ai_response(user_message):
     print(f"   Processing received message: '{user_message_lower}'")
 
     if any(word in user_message_lower for word in greetings):
-        return "היי נשמה, איך אפשר לעזור?"
+        return ["היי נשמה, איך אפשר לעזור?"]
     elif any(word in user_message_lower for word in order):
-        return "אין בעיה. מה תרצה להזמין?"
+        return ["אין בעיה. מה תרצה להזמין?"]
     elif any(word in user_message_lower for word in food):
-        return "סבבה. משלוח או בא לקחת?"
-    elif "משלוח" in user_message_lower:
-        return "אוקיי מה הכתובת?"
-    elif "שבט זבולון" in user_message_lower:
-        return "אצלך עד 45 דקות"
+        return ["סבבה, רוצה משלוח או שאתה בא לקחת?"]
     elif "בא לקחת" in user_message_lower:
-        return "תבוא עוד חצי שעה"
+        return ["סגור אח שלי", "איך אתה משלם?"]
+    elif "אשראי" in user_message_lower:
+        return ["יופי", "תשלם פה בבקשה: https://blueman2903.github.io/WhatsApp-assistant/", "אתה יכול להגיע עוד 45 דקות"]
+    elif "תודה" in user_message_lower:
+        return ["תודה לך", "שיהיה לך אחלה יום"]
+    # elif "משלוח" in user_message_lower:
+    #     return ["אוקיי מה הכתובת?"]
+    # elif "שבט זבולון" in user_message_lower:
+    #     return ["אצלך עוד 45 דקות"]
+
     else:
         # Default response if no keywords match
-        return f"על מה אתה מדבר אחי"
+        return ["על מה אתה מדבר אחי"]
 
 # --- Main Simulation Loop ---
 def run_whatsapp_polling_demo():
@@ -86,7 +91,9 @@ def run_whatsapp_polling_demo():
                     # Send the response back using the function from whatsapp.py
                     print(f"   🤖 Sending reply: '{response_text}'")
                     try:
-                        whatsapp.send_msg(response_text) # This uses your existing function
+                        for msg in response_text:
+                            whatsapp.send_msg(msg) # This uses your existing function
+                            time.sleep(2)
                         print(f"   Reply sent successfully via whatsapp.py")
                     except Exception as send_error:
                         print(f"!!! Error sending message via whatsapp.py: {send_error}")
