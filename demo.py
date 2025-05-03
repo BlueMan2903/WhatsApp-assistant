@@ -1,24 +1,16 @@
 import time
-import whatsapp  # Import your whatsapp.py module
-# This assumes whatsapp.py successfully initializes the 'client' object
-# and makes it available, potentially as whatsapp.client
+import whatsapp  
 
 # --- Configuration ---
-# IMPORTANT: Ensure these match the numbers used in your whatsapp.py and your demo setup
-MY_PERSONAL_WHATSAPP_NUMBER = 'whatsapp:+972547958073' # The number you will send messages FROM during the demo
-TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'      # Your Twilio WhatsApp number (receiving messages TO)
-
-POLLING_INTERVAL_SECONDS = 2 # How often to check for new messages (adjust as needed)
+     
+POLLING_INTERVAL_SECONDS = 2 # How often to check for new messages
 
 # --- The Hardcoded AI Script ---
 def get_ai_response(user_message):
-    """
-    Determines the AI's response based on the user's message.
-    This is where the hardcoded script logic lives.
-    """
+    food = ["פיצה", "שווארמה", "סושי"]
     greetings = ["הי", "מה קורה", "שלום"]
     order = ["להזמין", "הזמנה"]
-    user_message_lower = user_message.lower().strip() # Make matching case-insensitive and remove whitespace
+    user_message_lower = user_message.lower().strip()
 
     print(f"   Processing received message: '{user_message_lower}'")
 
@@ -26,7 +18,14 @@ def get_ai_response(user_message):
         return "היי נשמה, איך אפשר לעזור?"
     elif any(word in user_message_lower for word in order):
         return "אין בעיה. מה תרצה להזמין?"
-    
+    elif any(word in user_message_lower for word in food):
+        return "סבבה. משלוח או בא לקחת?"
+    elif "משלוח" in user_message_lower:
+        return "אוקיי מה הכתובת?"
+    elif "שבט זבולון" in user_message_lower:
+        return "אצלך עד 45 דקות"
+    elif "בא לקחת" in user_message_lower:
+        return "תבוא עוד חצי שעה"
     else:
         # Default response if no keywords match
         return f"על מה אתה מדבר אחי"
@@ -35,17 +34,19 @@ def get_ai_response(user_message):
 def run_whatsapp_polling_demo():
     """Runs the main loop polling WhatsApp and responding."""
     print("--- Live WhatsApp Demo AI Simulation (Polling) ---")
-    print(f"Watching for messages from: {MY_PERSONAL_WHATSAPP_NUMBER}")
-    print(f"Sent to Twilio Number:     {TWILIO_WHATSAPP_NUMBER}")
+    print(f"Watching for messages from: {whatsapp.MY_PERSONAL_WHATSAPP_NUMBER}")
+    print(f"Sent to Twilio Number:     {whatsapp.TWILIO_WHATSAPP_NUMBER}")
     print(f"Using send_msg from:       whatsapp.py")
     print(f"Polling interval:          {POLLING_INTERVAL_SECONDS} seconds")
     print("Press Ctrl+C to stop the script.")
 
     last_processed_message_sid = whatsapp.client.messages.list(
-                                    from_=MY_PERSONAL_WHATSAPP_NUMBER,
-                                    to=TWILIO_WHATSAPP_NUMBER,
+                                    from_=whatsapp.MY_PERSONAL_WHATSAPP_NUMBER,
+                                    to=whatsapp.TWILIO_WHATSAPP_NUMBER,
                                     limit=1 # We only need the very latest one
                                 )[0].sid
+    
+    messages_list = whatsapp.client.messages.list()
 
     while True:
         try:
@@ -55,12 +56,12 @@ def run_whatsapp_polling_demo():
             # Fetch the latest message *from* your personal number *to* the Twilio number
             # We access the 'client' instance initialized within the imported 'whatsapp' module
             messages = whatsapp.client.messages.list(
-                from_=MY_PERSONAL_WHATSAPP_NUMBER,
-                to=TWILIO_WHATSAPP_NUMBER,
+                from_=whatsapp.MY_PERSONAL_WHATSAPP_NUMBER,
+                to=whatsapp.TWILIO_WHATSAPP_NUMBER,
                 limit=1 # We only need the very latest one
             )
 
-            print("MESSAGES: ", messages)
+            print("last MESSAGE: ", messages[0].body)
 
             if not messages:
                 print("   No messages found from your number yet.")
@@ -118,17 +119,4 @@ def run_whatsapp_polling_demo():
 
 # --- Start the script ---
 if __name__ == "__main__":
-    print("Verifying whatsapp module and client...")
-    try:
-        # Attempt to access the client to ensure it's loaded.
-        # Fetching messages requires the client.
-        if hasattr(whatsapp, 'client') and whatsapp.client:
-             print("   Twilio client found in whatsapp module.")
-             run_whatsapp_polling_demo()
-        else:
-             print("!!! Error: Could not find initialized 'client' in whatsapp.py.")
-             print("    Make sure 'client = Client(account_sid, auth_token)' is run when whatsapp.py is imported.")
-    except ImportError:
-         print("!!! Error: Could not import 'whatsapp.py'. Make sure it's in the same directory.")
-    except Exception as setup_error:
-        print(f"!!! An error occurred during setup: {setup_error}")
+    run_whatsapp_polling_demo()
