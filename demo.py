@@ -39,29 +39,25 @@ def get_ai_response(user_message):
 def run_whatsapp_polling_demo():
     """Runs the main loop polling WhatsApp and responding."""
     print("--- Live WhatsApp Demo AI Simulation (Polling) ---")
-    print(f"Watching for messages from: {whatsapp.MY_PERSONAL_WHATSAPP_NUMBER}")
+    print(f"Watching for messages from: {whatsapp.RECIPIENT_WHATSAPP_NUMBERS}")
     print(f"Sent to Twilio Number:     {whatsapp.TWILIO_WHATSAPP_NUMBER}")
     print(f"Using send_msg from:       whatsapp.py")
     print(f"Polling interval:          {POLLING_INTERVAL_SECONDS} seconds")
     print("Press Ctrl+C to stop the script.")
 
     last_processed_message_sid = whatsapp.client.messages.list(
-                                    from_=whatsapp.MY_PERSONAL_WHATSAPP_NUMBER,
+                                    from_=whatsapp.RECIPIENT_WHATSAPP_NUMBERS,
                                     to=whatsapp.TWILIO_WHATSAPP_NUMBER,
                                     limit=1 # We only need the very latest one
                                 )[0].sid
-    
-    messages_list = whatsapp.client.messages.list()
 
     while True:
         try:
             current_time = time.strftime('%Y-%m-%d %H:%M:%S')
             print(f"\n[{current_time}] Checking for new messages...")
 
-            # Fetch the latest message *from* your personal number *to* the Twilio number
-            # We access the 'client' instance initialized within the imported 'whatsapp' module
             messages = whatsapp.client.messages.list(
-                from_=whatsapp.MY_PERSONAL_WHATSAPP_NUMBER,
+                from_=whatsapp.RECIPIENT_WHATSAPP_NUMBERS,
                 to=whatsapp.TWILIO_WHATSAPP_NUMBER,
                 limit=1 # We only need the very latest one
             )
@@ -92,7 +88,7 @@ def run_whatsapp_polling_demo():
                     print(f"   🤖 Sending reply: '{response_text}'")
                     try:
                         for msg in response_text:
-                            whatsapp.send_msg(msg) # This uses your existing function
+                            whatsapp.send_msg(msg, whatsapp.RECIPIENT_WHATSAPP_NUMBERS) # This uses your existing function
                             time.sleep(2)
                         print(f"   Reply sent successfully via whatsapp.py")
                     except Exception as send_error:
