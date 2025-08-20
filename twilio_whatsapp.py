@@ -1,4 +1,5 @@
 import os
+import config
 from twilio.rest import Client
 
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
@@ -28,3 +29,19 @@ def send_whatsapp_message(to_number, message_body):
     except Exception as e:
         print(f"Error sending message: {e}")
         return None
+    
+# NEW FUNCTION
+def send_handoff_message_to_nikol(customer_phone: str, customer_name: str, query: str, image_url: str = None):
+    """Sends a formatted handoff message to Nikol."""
+    if not config.NIKOL_WHATSAPP_NUMBER:
+        print("ERROR: NIKOL_WHATSAPP_NUMBER is not set. Cannot send handoff message.")
+        return
+
+    body = f"היי ניקול, יש פנייה חדשה:\n\n"
+    body += f"שם: {customer_name}\n"
+    body += f"טלפון: {customer_phone}\n"
+    body += f"פנייה: {query}\n"
+    if image_url:
+        body += f"תמונה: {image_url}"
+
+    send_whatsapp_message(config.NIKOL_WHATSAPP_NUMBER, body)

@@ -1,11 +1,12 @@
 import base64
 import requests
 import json
+import config
+import re
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-
-import config
 from .session import ConversationManager
+from twilio_whatsapp import send_handoff_message_to_nikol
 
 class AIAssistant:
     """The AI assistant specifically for the Podiatrist Clinic."""
@@ -50,16 +51,17 @@ class AIAssistant:
             return None
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> str:
-        """Gets an AI response for a given user, message, and optional image."""
-        history = self.session_manager.get_history(sender_id)
-        if not history:
+        session = self.session_manager.get_session(sender_id)
+        if not session:
             system_message = SystemMessage(content=self.system_message_content)
-            history = self.session_manager.start_new_session(sender_id, system_message)
-
+            session = self.session_manager.start_new_session(sender_id, system_message)
+        
+        history = session['history']
+        
+        # --- Add new message to history ---
         content_parts = []
         if user_message:
             content_parts.append({"type": "text", "text": user_message})
-        
         if image_url:
             base64_image = self._get_image_base64(image_url)
             if base64_image:
@@ -69,15 +71,49 @@ class AIAssistant:
                 })
             else:
                 return "אני מצטער, לא הצלחתי לעבד את התמונה ששלחת. אנא נסה שוב."
-
+        
         if not content_parts:
             return "No message received."
-
+            
+        history.append(HumanMessage(content=content_parts))
+        
+        # --- Get LLM response and parse for actions ---
         try:
-            history.append(HumanMessage(content=content_parts))
-            model_resp = self.llm.invoke(history)
-            history.append(AIMessage(content=model_resp.content))
-            return model_resp.content
+            model_response = self.llm.invoke(history)
+            ai_content = model_response.content
+            history.append(AIMessage(content=ai_content))
+
+            # Use regex to find an action tag like [ACTION: DO_SOMETHING]
+            action_match = re.search(r'\[ACTION:\s*(\w+)\s*\]', ai_content)
+            
+            clean_response = re.sub(r'\[ACTION:\s*\w+\s*\]', '', ai_content).strip()
+
+            if action_match:
+                action = action_match.group(1)
+                self._execute_action(action, sender_id, user_message, image_url)
+            
+            return clean_response
+
         except Exception as e:
-            print(f"Error invoking LLM: {e}")
+            print(f"Error invoking LLM or executing action: {e}")
             return "מצטער, אני נתקל בבעיה טכנית. אנא נסה שוב בעוד מספר רגעים."
+
+    def _execute_action(self, action: str, sender_id: str, user_message: str, image_url: str):
+        """Executes actions based on the parsed tag from the LLM response."""
+        print(f"Executing action '{action}' for user {sender_id}")
+        if action == "FORWARD_TO_NIKOL":
+            # For the MVP, we'll use the user's message as their name for now.
+            # A future step would be to explicitly ask for their name.
+            customer_name = user_message.split()[0] if user_message else "לא צוין שם"
+            send_handoff_message_to_nikol(
+                customer_phone=sender_id,
+                customer_name=customer_name,
+                query=user_message,
+                image_url=image_url
+            )
+        elif action == "PROVIDE_BOOKING_LINK":
+            # The main response already contains the booking text, so we just append the link.
+            booking_message = f"ניתן לקבוע תור דרך הקישור הבא:\n{config.BOOKING_URL}"
+            # This needs to be sent as a separate message via Twilio.
+            from twilio_whatsapp import send_whatsapp_message
+            send_whatsapp_message(sender_id, booking_message)
