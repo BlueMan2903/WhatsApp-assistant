@@ -1,6 +1,7 @@
 import os
 import config
 from twilio.rest import Client
+from time import sleep
 
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -18,7 +19,12 @@ def send_whatsapp_message(to_number, message_body):
     :param message_body: The content of the message
     :return: Twilio Message instance
     """
+    if config.DELAY:
+        delay = len(message_body) / 3
+    else:
+        delay = 0
     try:
+        sleep(delay)
         message = client.messages.create(
             from_='whatsapp:+14155238886',
             body=message_body,
@@ -28,6 +34,7 @@ def send_whatsapp_message(to_number, message_body):
         return message
     except Exception as e:
         print(f"Error sending message: {e}")
+        print(f"Message body: {message_body}")
         return None
     
 # NEW FUNCTION

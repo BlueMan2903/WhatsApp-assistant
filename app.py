@@ -42,7 +42,13 @@ def whatsapp_webhook():
 
     ai_response_content = assistant.get_response(sender_number, incoming_msg, media_url)
 
-    send_whatsapp_message(sender_number, ai_response_content)
+    try:
+        send_whatsapp_message(sender_number, ai_response_content)
+        logger.info(
+            f"Sending response to {sender_number} | Body: '{ai_response_content}'"
+        )
+    except Exception as e:
+        logger.error(e)
     
     return str(MessagingResponse())
 

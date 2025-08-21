@@ -18,9 +18,8 @@ class AIAssistant:
         self.session_manager = session_manager
         self.system_message_content = self._load_system_message()
         self.llm = init_chat_model(
-            "gemini-2.5-flash",
-            model_provider="google_genai",
-            google_api_key=config.GEMINI_API_KEY
+            model=config.MODEL,
+            **config.MODEL_CONFIG
         )
 
     def _load_file(self, path):

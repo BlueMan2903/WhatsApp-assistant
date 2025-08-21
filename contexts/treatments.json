@@ -2,7 +2,7 @@
   "appointment_types": [
     {
       "id": "fungal_infection",
-      "name_he": "טיפול בפטרת ציפורניים"
+      "name_he": "ניקוי פטרת ציפורניים"
     },
     {
       "id": "first_aid",
