@@ -1,20 +1,10 @@
 # app.py
-import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
-
+from config.logging_config import logger
 from assistant.assistant import AIAssistant
 from assistant.session import ConversationManager
 from twilio_whatsapp import send_whatsapp_message
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = RotatingFileHandler('whatsapp_messages.log', maxBytes=10000000, backupCount=5)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # Simplified formatter
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
 
 app = Flask(__name__)
 
@@ -42,14 +32,8 @@ def whatsapp_webhook():
 
     ai_response_content = assistant.get_response(sender_number, incoming_msg, media_url)
 
-    try:
-        send_whatsapp_message(sender_number, ai_response_content)
-        logger.info(
-            f"Sending response to {sender_number} | Body: '{ai_response_content}'"
-        )
-    except Exception as e:
-        logger.error(e)
-    
+    send_whatsapp_message(sender_number, ai_response_content)
+
     return str(MessagingResponse())
 
 if __name__ == "__main__":

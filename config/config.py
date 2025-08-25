@@ -26,4 +26,9 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 NIKOL_WHATSAPP_NUMBER = os.getenv("NIKOL_WHATSAPP_NUMBER")
 BOOKING_URL = os.getenv("BOOKING_URL")
 
+# Enable delay for simulating human response time
 DELAY = False
+
+# Retry config for sending whatsapp message
+MAX_RETRIES = 5
+RETRY_DELAY = 1

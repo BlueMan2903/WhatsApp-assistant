@@ -1,7 +1,7 @@
 import base64
 import requests
 import json
-import config
+import config.config as config
 import re
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -12,7 +12,7 @@ class AIAssistant:
     """The AI assistant specifically for the Podiatrist Clinic."""
 
     def __init__(self, session_manager: ConversationManager):
-        if not config.GEMINI_API_KEY:
+        if not config.MODEL_CONFIG["google_api_key"]:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
         
         self.session_manager = session_manager

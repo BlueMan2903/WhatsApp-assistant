@@ -1,7 +1,9 @@
 import os
-import config
+import config.config as config
 from twilio.rest import Client
 from time import sleep
+from config.logging_config import logger
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -12,6 +14,7 @@ if not ACCOUNT_SID or not AUTH_TOKEN:
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
+@retry(stop=stop_after_attempt(config.MAX_RETRIES), wait=config.RETRY_DELAY)
 def send_whatsapp_message(to_number, message_body):
     """
     Sends a WhatsApp message using Twilio.
@@ -23,6 +26,7 @@ def send_whatsapp_message(to_number, message_body):
         delay = len(message_body) / 3
     else:
         delay = 0
+
     try:
         sleep(delay)
         message = client.messages.create(
@@ -31,11 +35,13 @@ def send_whatsapp_message(to_number, message_body):
             to=to_number
         )
         print(f"Message sent successfully! SID: {message.sid}")
+        logger.info(f"Sending response to {to_number} | Body: '{message_body}'")
         return message
     except Exception as e:
         print(f"Error sending message: {e}")
         print(f"Message body: {message_body}")
-        return None
+        logger.error(f"Error sending message to {to_number}: {e}")
+        raise
     
 # NEW FUNCTION
 def send_handoff_message_to_nikol(customer_phone: str, customer_name: str, query: str, image_url: str = None):
@@ -43,12 +49,12 @@ def send_handoff_message_to_nikol(customer_phone: str, customer_name: str, query
     if not config.NIKOL_WHATSAPP_NUMBER:
         print("ERROR: NIKOL_WHATSAPP_NUMBER is not set. Cannot send handoff message.")
         return
-
+    
     body = f"היי ניקול, יש פנייה חדשה:\n\n"
     body += f"שם: {customer_name}\n"
     body += f"טלפון: {customer_phone}\n"
     body += f"פנייה: {query}\n"
+    
     if image_url:
         body += f"תמונה: {image_url}"
-
     send_whatsapp_message(config.NIKOL_WHATSAPP_NUMBER, body)
