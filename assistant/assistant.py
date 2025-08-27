@@ -3,6 +3,7 @@ import requests
 import json
 import config.config as config
 import re
+from config.logging_config import logger
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from .session import ConversationManager
@@ -46,7 +47,7 @@ class AIAssistant:
             response.raise_for_status()
             return base64.b64encode(response.content).decode("utf-8")
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching image from Twilio: {e}")
+            logger.error(f"Error fetching image from Twilio: {e}")
             return None
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> str:
@@ -94,12 +95,12 @@ class AIAssistant:
             return clean_response
 
         except Exception as e:
-            print(f"Error invoking LLM or executing action: {e}")
+            logger.error(f"Error invoking LLM or executing action: {e}")
             return "מצטער, אני נתקל בבעיה טכנית. אנא נסה שוב בעוד מספר רגעים."
 
     def _execute_action(self, action: str, sender_id: str, user_message: str, image_url: str):
         """Executes actions based on the parsed tag from the LLM response."""
-        print(f"Executing action '{action}' for user {sender_id}")
+        logger.info(f"Executing action '{action}' for user {sender_id}")
         if action == "FORWARD_TO_NIKOL":
             # For the MVP, we'll use the user's message as their name for now.
             # A future step would be to explicitly ask for their name.

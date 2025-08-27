@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Gemini config
-MODEL = "gemini-2.5-pro"
+MODEL = "gemini-2.5-flash"
 MODEL_CONFIG = {
     "model_provider": "google_genai",
     "google_api_key": os.getenv("GEMINI_API_KEY")

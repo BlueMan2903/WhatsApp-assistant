@@ -11,9 +11,9 @@ app = Flask(__name__)
 try:
     session_manager = ConversationManager()
     assistant = AIAssistant(session_manager=session_manager)
-    print("Successfully initialized Lola, Nikol's AI Assistant.")
+    logger.info("Successfully initialized Lola, Nikol's AI Assistant.")
 except (ValueError, FileNotFoundError) as e:
-    print(f"ERROR starting application: {e}")
+    logger.error(f"ERROR starting application: {e}")
     logger.critical(f"Application failed to initialize: {e}")
     assistant = None
 
