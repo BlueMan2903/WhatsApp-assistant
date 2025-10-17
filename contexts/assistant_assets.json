@@ -1,0 +1,18 @@
+{
+  "appointment_types": [
+    {
+      "id": "nail_fungal_infection",
+      "name_he": "ניקוי פטרת ציפורניים"
+    },
+    {
+      "id": "paramedial_pedicure",
+      "name_he": "פדיקור פרא רפואי"
+    },
+    {
+      "id": "first_aid",
+      "name_he": "טיפול עזרה ראשונה"
+    }
+  ],
+  "handoff_message_he": "קיבלנו את פנייתך, תקבלי מענה תוך יום עסקים אחד על ידי ניקול.",
+  "diabetes_referral_message_he": "בשל השימוש בזריקות אינסולין, יש לתאם את הטיפול מול מרפאת הסוכרת בקופת החולים שלך. אנו כאן לכל שאלה נוספת."
+}

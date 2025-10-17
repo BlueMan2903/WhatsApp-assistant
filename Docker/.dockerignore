@@ -1,0 +1,17 @@
+# .dockerignore
+
+# Ignore Python virtual environment
+.venv/
+
+# Ignore Python cache files and compiled files
+__pycache__/
+*.pyc
+
+# Ignore secrets, logs, and local config
+.env
+whatsapp_messages.log
+*.log
+
+# Ignore IDE and Git directories
+.git/
+.vscode/
