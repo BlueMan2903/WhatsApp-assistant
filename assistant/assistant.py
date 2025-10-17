@@ -32,7 +32,7 @@ class AIAssistant:
         """Loads and combines the podiatrist persona files into a single system prompt."""
         intro = self._load_file("contexts/prompt.txt")
         rules = self._load_file("contexts/rules.txt")
-        with open("contexts/treatments.json", 'r', encoding='utf-8') as f:
+        with open("contexts/assistant_assets.json", 'r', encoding='utf-8') as f:
             data = json.dumps(json.load(f), ensure_ascii=False)
         
         return f"{intro}\n{rules}\n{data}"
@@ -40,6 +40,8 @@ class AIAssistant:
     def _get_image_base64(self, image_url: str) -> str | None:
         """Fetches an image from a Twilio URL and returns it as a base64 string."""
         try:
+            logger.info(f"Attempting to fetch image with SID: {config.TWILIO_ACCOUNT_SID}")
+            
             response = requests.get(
                 image_url,
                 auth=(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN)
@@ -50,7 +52,10 @@ class AIAssistant:
             logger.error(f"Error fetching image from Twilio: {e}")
             return None
 
-    def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> str:
+    def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> list[str]:
+        """
+        Processes user input and returns a list of messages to be sent in order.
+        """
         session = self.session_manager.get_session(sender_id)
         if not session:
             system_message = SystemMessage(content=self.system_message_content)
@@ -70,10 +75,10 @@ class AIAssistant:
                     "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
                 })
             else:
-                return "אני מצטער, לא הצלחתי לעבד את התמונה ששלחת. אנא נסה שוב."
+                return ["אני מצטער, לא הצלחתי לעבד את התמונה ששלחת. אנא נסה שוב."]
         
         if not content_parts:
-            return "No message received."
+            return ["לא התקבלה הודעה."]
             
         history.append(HumanMessage(content=content_parts))
         
@@ -83,23 +88,29 @@ class AIAssistant:
             ai_content = model_response.content
             history.append(AIMessage(content=ai_content))
 
-            # Use regex to find an action tag like [ACTION: DO_SOMETHING]
-            action_match = re.search(r'\[ACTION:\s*(\w+)\s*\]', ai_content)
+            messages_to_send = []
             
             clean_response = re.sub(r'\[ACTION:\s*\w+\s*\]', '', ai_content).strip()
+            messages_to_send.append(clean_response) # Add the main explanation first
 
+            action_match = re.search(r'\[ACTION:\s*(\w+)\s*\]', ai_content)
             if action_match:
                 action = action_match.group(1)
-                self._execute_action(action, sender_id, user_message, image_url)
+                follow_up_message = self._execute_action(action, sender_id, user_message, image_url)
+                if follow_up_message:
+                    messages_to_send.append(follow_up_message) # Add the follow-up message second
             
-            return clean_response
+            return messages_to_send
 
         except Exception as e:
             logger.error(f"Error invoking LLM or executing action: {e}")
-            return "מצטער, אני נתקל בבעיה טכנית. אנא נסה שוב בעוד מספר רגעים."
+            return ["מצטער, אני נתקל בבעיה טכנית. אנא נסה שוב בעוד מספר רגעים."]
 
-    def _execute_action(self, action: str, sender_id: str, user_message: str, image_url: str):
-        """Executes actions based on the parsed tag from the LLM response."""
+    def _execute_action(self, action: str, sender_id: str, user_message: str, image_url: str) -> str | None:
+        """
+        Executes background tasks and returns content for any follow-up messages.
+        Returns None if no follow-up message is needed.
+        """
         logger.info(f"Executing action '{action}' for user {sender_id}")
         if action == "FORWARD_TO_NIKOL":
             # For the MVP, we'll use the user's message as their name for now.
@@ -111,9 +122,7 @@ class AIAssistant:
                 query=user_message,
                 image_url=image_url
             )
+            return None # No follow-up message for the user
         elif action == "PROVIDE_BOOKING_LINK":
-            # The main response already contains the booking text, so we just append the link.
-            booking_message = f"ניתן לקבוע תור דרך הקישור הבא:\n{config.BOOKING_URL}"
-            # This needs to be sent as a separate message via Twilio.
-            from twilio_whatsapp import send_whatsapp_message
-            send_whatsapp_message(sender_id, booking_message)
+            return f"ניתן לקבוע תור דרך הקישור הבא:\n{config.BOOKING_URL}"
+        return None

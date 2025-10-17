@@ -1,8 +1,12 @@
 {
   "appointment_types": [
     {
-      "id": "fungal_infection",
+      "id": "nail_fungal_infection",
       "name_he": "ניקוי פטרת ציפורניים"
+    },
+    {
+      "id": "paramedial_pedicure",
+      "name_he": "פדיקור פרא רפואי"
     },
     {
       "id": "first_aid",
