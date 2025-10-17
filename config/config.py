@@ -18,6 +18,9 @@ MODEL_CONFIG = {
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
+NGROK_SETUP = "ngrok config add-authtoken 31btVlpGpJvGNMgMuVoDhie3nhS_2XL9vKr9Dsyu3hoQP5hfq"
+NGROK_COMMAND = "ngrok http --url=stirring-yearly-anteater.ngrok-free.app 5000"
+
 # New configuration for MVP actions
 NIKOL_WHATSAPP_NUMBER = os.getenv("NIKOL_WHATSAPP_NUMBER")
 BOOKING_URL = os.getenv("BOOKING_URL")
