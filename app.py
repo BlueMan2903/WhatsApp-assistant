@@ -25,7 +25,7 @@ def whatsapp_webhook():
     media_url = request.values.get('MediaUrl0', None)
 
     logger.info(
-        f"Incoming message from {sender_number} | Media: {'Yes' if media_url else 'No'} | Body: '{incoming_msg}'"
+        f"Incoming message from {sender_number} | Media: {'Yes' if media_url else 'No'} | Body: '{incoming_msg[::-1]}'"
     )
 
     # The assistant now returns a list of messages to send
@@ -36,6 +36,7 @@ def whatsapp_webhook():
     for message_content in list_of_messages:
         if message_content: # Ensure we don't send empty messages
             response.message(message_content)
+            logger.info(f"Outgoing message to {sender_number} | Body: '{message_content[::-1]}'")
     
     return str(response)
 

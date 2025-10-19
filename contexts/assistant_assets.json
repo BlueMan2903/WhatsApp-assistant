@@ -1,16 +1,12 @@
 {
   "appointment_types": [
     {
-      "id": "nail_fungal_infection",
-      "name_he": "ניקוי פטרת ציפורניים"
+      "id": "nail_cleaning",
+      "name_he": "ניקוי ציפורניים"
     },
     {
       "id": "paramedial_pedicure",
       "name_he": "פדיקור פרא רפואי"
-    },
-    {
-      "id": "first_aid",
-      "name_he": "טיפול עזרה ראשונה"
     }
   ],
   "handoff_message_he": "קיבלנו את פנייתך, תקבלי מענה תוך יום עסקים אחד על ידי ניקול.",
