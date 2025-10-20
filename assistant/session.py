@@ -23,3 +23,12 @@ class ConversationManager:
             'state': 'AWAITING_INITIAL_QUERY' # Initial state
         }
         return self._sessions[session_id]
+    
+    # FOR TESTING PURPOSES ONLY
+    def reset_session(self, session_id: str, system_message: SystemMessage):
+        """Resets the conversation history for a given session ID."""
+        if session_id in self._sessions:
+            self._sessions[session_id]['history'] = [system_message]
+            self._sessions[session_id]['state'] = 'AWAITING_INITIAL_QUERY'
+            return True
+        return False

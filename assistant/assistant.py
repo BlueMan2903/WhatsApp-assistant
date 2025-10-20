@@ -56,6 +56,15 @@ class AIAssistant:
         """
         Processes user input and returns a list of messages to be sent in order.
         """
+
+        # Check for reset command
+        if config.RESET_CHAT_ENABLED and user_message.strip().lower() == "/reset":
+            system_message = SystemMessage(content=self.system_message_content)
+            self.session_manager.reset_session(sender_id, system_message)
+            logger.info(f"Conversation reset for user {sender_id}")
+            # Return a confirmation message (in Hebrew, as per your bot's rules)
+            return ["The chat has been reset."]
+
         session = self.session_manager.get_session(sender_id)
         if not session:
             system_message = SystemMessage(content=self.system_message_content)

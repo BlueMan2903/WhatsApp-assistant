@@ -30,4 +30,7 @@ DELAY = False
 
 # Retry config for sending whatsapp message
 MAX_RETRIES = 5
-RETRY_DELAY = 1
+# delay in seconds
+RETRY_DELAY = 10
+
+RESET_CHAT_ENABLED = True
