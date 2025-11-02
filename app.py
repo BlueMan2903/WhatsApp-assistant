@@ -1,14 +1,17 @@
 # app.py
-from flask import Flask, request
-from twilio.twiml.messaging_response import MessagingResponse
+from flask import Flask, request, jsonify ### MODIFIED: Import jsonify for API responses
+from flask_cors import CORS ### NEW: Import CORS for cross-origin requests
 from config.logging_config import logger
 from assistant.assistant import AIAssistant
 from assistant.session import ConversationManager
-from twilio_whatsapp import send_handoff_message_to_nikol
+# ### REMOVED: No longer need Twilio handoff in the main app file
+# from twilio_whatsapp import send_handoff_message_to_nikol
 import config.config as config
 import json
 
 app = Flask(__name__)
+### NEW: Enable CORS to allow your frontend to make requests to this backend
+CORS(app)
 
 try:
     session_manager = ConversationManager()
@@ -16,64 +19,62 @@ try:
 
     with open("contexts/assistant_assets.json", 'r', encoding='utf-8') as f:
         assets = json.load(f)
+    # This can still be used for a generic error message
     HANDOFF_MESSAGE_HE = assets["handoff_message_he"]
 
-    logger.info("Successfully initialized Lola, Nikol's AI Assistant.")
+    logger.info("Successfully initialized Lola, Nikol's AI Assistant for Web Chat.")
 except (ValueError, FileNotFoundError) as e:
     logger.critical(f"Application failed to initialize: {e}")
     assistant = None
     HANDOFF_MESSAGE_HE = "אנו כרגע חווים תקלה טכנית. ניקול תיצור איתך קשר בקרוב"
 
-@app.route("/whatsapp", methods=['POST'])
-def whatsapp_webhook():
-    if not assistant:
-        return "Application not initialized.", 500
 
-    incoming_msg = request.values.get('Body', '').strip()
-    sender_number = request.values.get('From', '')
-    media_url = request.values.get('MediaUrl0', None)
+### MODIFIED: This is the new API endpoint for the web chat
+@app.route("/chat", methods=['POST'])
+def chat_api():
+    if not assistant:
+        return jsonify({"error": "Application not initialized."}), 500
+
+    ### MODIFIED: Get data from the JSON body of the request
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON."}), 400
+
+    sender_id = data.get('sender_id')
+    incoming_msg = data.get('message', '').strip()
+    # The frontend now sends a base64 data URL directly
+    image_data_url = data.get('image', None)
+    
+    if not sender_id:
+        return jsonify({"error": "sender_id is required."}), 400
 
     logger.info(
-        f"Incoming message from {sender_number} | Media: {'Yes' if media_url else 'No'} | Body: '{incoming_msg[::-1]}'"
+        f"Incoming message from {sender_id} | Media: {'Yes' if image_data_url else 'No'} | Body: '{incoming_msg[::-1]}'"
     )
 
     try:
-        response = MessagingResponse()
+        # The assistant returns a list of messages
+        list_of_messages = assistant.get_response(sender_id, incoming_msg, image_data_url)
 
-        # The assistant now returns a list of messages to send
-        list_of_messages = assistant.get_response(sender_number, incoming_msg, media_url)
-
-        # --- Build TwiML response with multiple messages ---
-        response = MessagingResponse()
-        for message_content in list_of_messages:
-            if message_content: # Ensure we don't send empty messages
-                response.message(message_content)
-                logger.info(f"Outgoing message to {sender_number} | Body: '{message_content[::-1]}'")
+        # Join the messages into a single string for the JSON response
+        full_response = "\n".join(filter(None, list_of_messages))
         
-        return str(response)
+        logger.info(f"Outgoing message to {sender_id} | Body: '{full_response[::-1]}'")
+
+        ### MODIFIED: Send the response back as JSON
+        return jsonify({"response": full_response})
     
     except Exception as e:
-        # This is the global safety net. Catches errors from assistant.py
-        logger.error(f"FATAL ASSISTANT ERROR for {sender_number}: {e}", exc_info=True)
+        # This is the global safety net
+        logger.error(f"FATAL ASSISTANT ERROR for {sender_id}: {e}", exc_info=True)
 
-        # Plan 1: Send handoff to Nikol on failure
-        try:
-            history_string = session_manager.get_formatted_history(sender_number)
-            error_message = f"--- CONVERSATION FAILED ---\nError: {e}\n\n{history_string}"
-            
-            send_handoff_message_to_nikol(
-                customer_phone=sender_number,
-                customer_name="Failed Session",
-                query=error_message,
-                image_url=media_url # Send the image if it was part of the failing message
-            )
-        except Exception as handoff_e:
-            # Log if the handoff itself fails, so we know about it
-            logger.error(f"FATAL HANDOFF ERROR for {sender_number}: {handoff_e}", exc_info=True)
-
-        # Send the standard handoff message to the user
-        response.message(HANDOFF_MESSAGE_HE)
-        return str(response)
+        ### MODIFIED: The handoff to Nikol via Twilio is removed.
+        # We now log the error and send a generic error message to the user.
+        # A future improvement could be to send an email notification here.
+        
+        # Send a user-friendly error message back to the frontend
+        error_message = "I'm sorry, I seem to be having a technical issue. Please try again in a moment."
+        return jsonify({"response": error_message}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
