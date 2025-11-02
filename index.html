@@ -1,55 +1,98 @@
 <!DOCTYPE html>
-<!-- ### MODIFIED ###: Added lang="he" and dir="rtl" for Hebrew language and Right-to-Left layout -->
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nikol Verbitsky - Podiatry Clinic</title>
     <style>
-        /* All CSS from before remains, with RTL-specific modifications */
         :root {
             --cert-dark-green: #3A5A40;
             --cert-light-green-bg: #F0F3EF;
             --cert-off-white: #F9F9F9;
             --cert-dark-text: #333333;
             --cert-frame-black: #2c2c2c;
-            --cert-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><g fill="%233A5A40" fill-opacity="0.05"><path d="M0 0h80v80H0zM40 0c4.42 0 8.45 1.08 12.13 3.01L40 22.06 27.87 3.01C31.55 1.08 35.58 0 40 0zM22.06 40L3.01 27.87C1.08 31.55 0 35.58 0 40c0 4.42 1.08 8.45 3.01 12.13L22.06 40zM40 80c-4.42 0-8.45-1.08-12.13-3.01L40 57.94 52.13 76.99C48.45 78.92 44.42 80 40 80zM57.94 40L76.99 52.13c1.93-3.68 3.01-7.7 3.01-12.13 0-4.42-1.08-8.45-3.01-12.13L57.94 40zM40 40l10-10-10-10-10 10 10 10z"/></g></svg>');
         }
+
+        /* ### MODIFIED ###: Prevents background pattern on mobile and ensures full height */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             background-color: var(--cert-light-green-bg);
-            background-image: var(--cert-pattern);
             color: var(--cert-dark-text);
         }
-        .page-container { max-width: 800px; margin: 20px auto; background-color: var(--cert-off-white); border: 4px solid var(--cert-frame-black); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; }
-        .header { text-align: center; padding: 30px 20px; border-bottom: 2px solid var(--cert-dark-green); }
-        .header .logo { width: 70px; height: 70px; border-radius: 50%; background-color: var(--cert-dark-green); color: var(--cert-off-white); display: flex; justify-content: center; align-items: center; margin: 0 auto 15px auto; font-size: 1.2em; font-weight: bold; border: 3px solid var(--cert-off-white); box-shadow: 0 0 0 2px var(--cert-dark-green); }
-        .header h1 { margin: 0; font-size: 2em; color: var(--cert-dark-green); font-family: 'Times New Roman', Times, serif; }
-        .header p { margin: 5px 0 0; font-size: 1.1em; color: var(--cert-dark-text); }
-        .main-content { padding: 20px; }
-        .footer { text-align: center; padding: 20px; border-top: 1px solid #eee; font-size: 0.9em; color: #777; }
-        @media (max-width: 840px) { body { background-image: none; } .page-container { margin: 0; border: none; min-height: 100vh; } .main-content { padding: 10px; } }
-        .chat-container { display: flex; flex-direction: column; height: 70vh; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
-        .chat-header { background-color: var(--cert-dark-green); color: white; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background-color: #ffffff; }
+
+        /* ### MODIFIED ###: This is the core of the mobile layout fix.
+           The page container now acts as a full-height flex column. */
+        .page-container {
+            max-width: 800px;
+            margin: 0 auto; /* Centered on desktop */
+            background-color: var(--cert-off-white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Takes at least the full screen height */
+        }
+
+        .header { text-align: center; padding: 20px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
+        .header .logo { width: 60px; height: 60px; border-radius: 50%; background-color: var(--cert-dark-green); color: var(--cert-off-white); display: flex; justify-content: center; align-items: center; margin: 0 auto 10px auto; font-size: 1.1em; font-weight: bold; border: 2px solid var(--cert-off-white); box-shadow: 0 0 0 2px var(--cert-dark-green); }
+        .header h1 { margin: 0; font-size: 1.8em; color: var(--cert-dark-green); font-family: 'Times New Roman', Times, serif; }
+        .header p { margin: 5px 0 0; font-size: 1em; color: var(--cert-dark-text); }
         
-        /* ### MODIFIED ###: Explicitly set text alignment for RTL */
+        /* ### MODIFIED ###: The main content area now grows to fill available space */
+        .main-content {
+            padding: 10px;
+            flex: 1; /* This is crucial - it makes this section grow */
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Prevents flexbox overflow issues */
+        }
+
+        .footer { text-align: center; padding: 15px; font-size: 0.8em; color: #777; flex-shrink: 0; }
+
+        /* Styles for desktop view */
+        @media (min-width: 840px) {
+            body { padding: 20px 0; }
+            .page-container {
+                border: 4px solid var(--cert-frame-black);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                min-height: calc(100vh - 40px);
+                max-height: 95vh;
+            }
+        }
+        
+        /* --- CHAT WIDGET STYLES (MODIFIED FOR FLEXIBLE HEIGHT) --- */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            flex: 1; /* Makes the chat container fill the .main-content area */
+            min-height: 0;
+        }
+
+        .chat-header { background-color: var(--cert-dark-green); color: white; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; }
+        
+        /* ### MODIFIED ###: The message area is now the primary flexible element */
+        .chat-messages {
+            flex: 1; /* This makes the message area take all available space */
+            padding: 20px;
+            overflow-y: auto; /* A scrollbar will ONLY appear here */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #ffffff;
+        }
+
         .message { padding: 10px 15px; border-radius: 18px; max-width: 80%; line-height: 1.4; word-wrap: break-word; text-align: right; }
         .message a { color: #FFFFFF; text-decoration: underline; }
         .assistant-message a { color: var(--cert-dark-green); font-weight: bold; }
-
-        /* ### MODIFIED ###: Flipped the alignment of chat bubbles for RTL */
-        .user-message { background-color: var(--cert-dark-green); color: white; align-self: flex-start; } /* User is now on the LEFT */
-        .assistant-message { background-color: var(--cert-light-green-bg); color: var(--cert-dark-text); align-self: flex-end; } /* Assistant is now on the RIGHT */
-        
+        .user-message { background-color: var(--cert-dark-green); color: white; align-self: flex-start; }
+        .assistant-message { background-color: var(--cert-light-green-bg); color: var(--cert-dark-text); align-self: flex-end; }
         #typing-indicator { font-style: italic; color: #888; }
-        .chat-form-container { padding: 10px; border-top: 1px solid #ddd; background-color: #f9f9f9; }
+        
+        .chat-form-container { padding: 10px; border-top: 1px solid #ddd; background-color: #f9f9f9; flex-shrink: 0; }
         .chat-form { display: flex; align-items: center; gap: 10px; }
-        
-        /* ### MODIFIED ###: Added text-align: right for the input field */
         .chat-form input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 1em; text-align: right; }
-        
         .chat-form input[type="file"] { display: none; }
         .chat-form label, .chat-form button { background-color: var(--cert-dark-green); color: white; border: none; padding: 10px; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5em; flex-shrink: 0; }
         #image-preview { font-size: 0.8em; color: #555; margin-top: 5px; text-align: center; }
@@ -59,24 +102,23 @@
     <div class="page-container">
         <header class="header">
             <div class="logo">NV</div>
-            <h1>ניקול ורביצקי</h1> <!-- Translated for context -->
-            <p>קליניקה מוסמכת לפדיקור</p> <!-- Translated for context -->
+            <h1>ניקול ורביצקי</h1>
+            <p>קליניקה מוסמכת לפדיקור</p>
         </header>
 
         <main class="main-content">
             <div class="chat-container">
-                <div class="chat-header">צ'אט עם לולה</div> <!-- Translated for context -->
+                <div class="chat-header">צ'אט עם לולה</div>
                 <div class="chat-messages" id="chat-messages">
-                    <!-- The initial message will be replaced by the AI's first response, which is in Hebrew -->
                     <div class="message assistant-message">שלום, הגעת לקליניקה של ניקול. אני לולה, העוזרת שלה. איך אוכל לעזור?</div>
                 </div>
                 <div class="chat-form-container">
                     <form id="chat-form" class="chat-form">
-                        <!-- Swapped button and attachment icon order to feel more natural in RTL -->
+                        <!-- ### MODIFIED ###: Reordered elements for better RTL layout and to prevent cutoff -->
                         <button type="submit" title="Send">➤</button>
-                        <input type="text" id="message-input" placeholder="הקלד/י את הודעתך..." autocomplete="off">
                         <label for="image-input" title="Attach Image">📎</label>
                         <input type="file" id="image-input" accept="image/*">
+                        <input type="text" id="message-input" placeholder="הקלד/י את הודעתך..." autocomplete="off">
                     </form>
                     <div id="image-preview"></div>
                 </div>
@@ -84,13 +126,12 @@
         </main>
 
         <footer class="footer">
-            <p>&copy; 2025 ניקול ורביצקי. כל הזכויות שמורות.</p> <!-- Translated for context -->
+            <p>&copy; 2025 ניקול ורביצקי. כל הזכויות שמורות.</p>
         </footer>
     </div>
 
     <script>
         // The JavaScript logic remains exactly the same.
-        // It does not need to be changed for RTL display.
         document.addEventListener("DOMContentLoaded", function() {
             const chatForm = document.getElementById('chat-form');
             const chatMessages = document.getElementById('chat-messages');
@@ -142,6 +183,7 @@
             });
 
             async function sendMessageToServer(message, image) {
+                // !!! REMEMBER to update your Ngrok URL here !!!
                 const apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/chat'; 
                 addMessage("לולה מקלידה...", "assistant", null, true);
                 try {
