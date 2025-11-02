@@ -1,5 +1,5 @@
 # assistant/session.py
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 
 class ConversationManager:
     """Manages conversation sessions for multiple users, including state."""
@@ -32,3 +32,32 @@ class ConversationManager:
             self._sessions[session_id]['state'] = 'AWAITING_INITIAL_QUERY'
             return True
         return False
+    
+    def get_formatted_history(self, session_id: str) -> str:
+            """Formats the chat history into a simple, readable string."""
+            session = self.get_session(session_id)
+            if not session:
+                return "No session history found."
+            
+            history: list[BaseMessage] = session.get('history', [])
+            formatted_lines = []
+
+            for msg in history:
+                if isinstance(msg, SystemMessage):
+                    # We don't need to send the full system prompt to Nikol
+                    continue 
+                elif isinstance(msg, HumanMessage):
+                    prefix = "User:"
+                    if isinstance(msg.content, list): # Handle multipart messages (text + image)
+                        text_parts = [part['text'] for part in msg.content if part['type'] == 'text']
+                        text = " ".join(text_parts)
+                        if any(part['type'] == 'image_url' for part in msg.content):
+                            text += " [Image Attached]"
+                    else:
+                        text = msg.content
+                    formatted_lines.append(f"{prefix} {text}")
+                elif isinstance(msg, AIMessage):
+                    prefix = "Lola:"
+                    formatted_lines.append(f"{prefix} {msg.content}")
+
+            return "\n".join(formatted_lines)
