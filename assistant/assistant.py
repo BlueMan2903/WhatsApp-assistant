@@ -50,13 +50,13 @@ class AIAssistant:
             return base64.b64encode(response.content).decode("utf-8")
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching image from Twilio: {e}")
-            return None
+            # Re-raise the exception so the app.py handler can catch it
+            raise Exception(f"Twilio image download failed: {e}")
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> list[str]:
         """
         Processes user input and returns a list of messages to be sent in order.
         """
-
         # Check for reset command
         if config.RESET_CHAT_ENABLED and user_message.strip().lower() == "/reset":
             system_message = SystemMessage(content=self.system_message_content)
@@ -65,34 +65,34 @@ class AIAssistant:
             # Return a confirmation message (in Hebrew, as per your bot's rules)
             return ["The chat has been reset."]
 
-        session = self.session_manager.get_session(sender_id)
-        if not session:
-            system_message = SystemMessage(content=self.system_message_content)
-            session = self.session_manager.start_new_session(sender_id, system_message)
-        
-        history = session['history']
-        
-        # --- Add new message to history ---
-        content_parts = []
-        if user_message:
-            content_parts.append({"type": "text", "text": user_message})
-        if image_url:
-            base64_image = self._get_image_base64(image_url)
-            if base64_image:
-                content_parts.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                })
-            else:
-                return ["אני מצטער, לא הצלחתי לעבד את התמונה ששלחת. אנא נסה שוב."]
-        
-        if not content_parts:
-            return ["לא התקבלה הודעה."]
+        try:
+            session = self.session_manager.get_session(sender_id)
+            if not session:
+                system_message = SystemMessage(content=self.system_message_content)
+                session = self.session_manager.start_new_session(sender_id, system_message)
             
-        history.append(HumanMessage(content=content_parts))
+            history = session['history']
+            
+            # --- Add new message to history ---
+            content_parts = []
+            if user_message:
+                content_parts.append({"type": "text", "text": user_message})
+            if image_url:
+                base64_image = self._get_image_base64(image_url)
+                if base64_image:
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                    })
+                else:
+                    return ["אני מצטער, לא הצלחתי לעבד את התמונה ששלחת. אנא נסה שוב."]
+            
+            if not content_parts:
+                return ["לא התקבלה הודעה."]
+                
+            history.append(HumanMessage(content=content_parts))
         
         # --- Get LLM response and parse for actions ---
-        try:
             model_response = self.llm.invoke(history)
             ai_content = model_response.content
             history.append(AIMessage(content=ai_content))
@@ -112,8 +112,8 @@ class AIAssistant:
             return messages_to_send
 
         except Exception as e:
-            logger.error(f"Error invoking LLM or executing action: {e}")
-            return ["מצטער, אני נתקל בבעיה טכנית. אנא נסה שוב בעוד מספר רגעים."]
+            logger.error(f"Error in get_response for {sender_id}: {e}")
+            raise Exception(f"Assistant failure: {e}")
 
     def _execute_action(self, action: str, sender_id: str, user_message: str, image_url: str) -> str | None:
         """
