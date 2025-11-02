@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nikol Verbitsky - Podiatry Clinic</title>
     <style>
+        /* All CSS remains the same */
         :root {
             --cert-dark-green: #3A5A40;
             --cert-light-green-bg: #F0F3EF;
@@ -12,90 +13,42 @@
             --cert-dark-text: #333333;
             --cert-frame-black: #2c2c2c;
         }
-
-        /* ### MODIFIED ###: Prevents background pattern on mobile and ensures full height */
+        html { height: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             background-color: var(--cert-light-green-bg);
             color: var(--cert-dark-text);
-        }
-
-        /* ### MODIFIED ###: This is the core of the mobile layout fix.
-           The page container now acts as a full-height flex column. */
-        .page-container {
-            max-width: 800px;
-            margin: 0 auto; /* Centered on desktop */
-            background-color: var(--cert-off-white);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh; /* Takes at least the full screen height */
-        }
-
-        .header { text-align: center; padding: 20px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
-        .header .logo { width: 60px; height: 60px; border-radius: 50%; background-color: var(--cert-dark-green); color: var(--cert-off-white); display: flex; justify-content: center; align-items: center; margin: 0 auto 10px auto; font-size: 1.1em; font-weight: bold; border: 2px solid var(--cert-off-white); box-shadow: 0 0 0 2px var(--cert-dark-green); }
-        .header h1 { margin: 0; font-size: 1.8em; color: var(--cert-dark-green); font-family: 'Times New Roman', Times, serif; }
-        .header p { margin: 5px 0 0; font-size: 1em; color: var(--cert-dark-text); }
-        
-        /* ### MODIFIED ###: The main content area now grows to fill available space */
-        .main-content {
-            padding: 10px;
-            flex: 1; /* This is crucial - it makes this section grow */
-            display: flex;
-            flex-direction: column;
-            min-height: 0; /* Prevents flexbox overflow issues */
-        }
-
-        .footer { text-align: center; padding: 15px; font-size: 0.8em; color: #777; flex-shrink: 0; }
-
-        /* Styles for desktop view */
-        @media (min-width: 840px) {
-            body { padding: 20px 0; }
-            .page-container {
-                border: 4px solid var(--cert-frame-black);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                min-height: calc(100vh - 40px);
-                max-height: 95vh;
-            }
-        }
-        
-        /* --- CHAT WIDGET STYLES (MODIFIED FOR FLEXIBLE HEIGHT) --- */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            height: 100%;
             overflow: hidden;
-            flex: 1; /* Makes the chat container fill the .main-content area */
-            min-height: 0;
         }
-
-        .chat-header { background-color: var(--cert-dark-green); color: white; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; }
-        
-        /* ### MODIFIED ###: The message area is now the primary flexible element */
-        .chat-messages {
-            flex: 1; /* This makes the message area take all available space */
-            padding: 20px;
-            overflow-y: auto; /* A scrollbar will ONLY appear here */
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background-color: #ffffff;
-        }
-
-        .message { padding: 10px 15px; border-radius: 18px; max-width: 80%; line-height: 1.4; word-wrap: break-word; text-align: right; }
+        .page-container { height: 100dvh; background-color: var(--cert-off-white); display: flex; flex-direction: column; }
+        .header { text-align: center; padding: 15px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
+        .header .logo { width: 50px; height: 50px; font-size: 1em; margin: 0 auto 8px; border-radius: 50%; background-color: var(--cert-dark-green); color: var(--cert-off-white); display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid var(--cert-off-white); box-shadow: 0 0 0 2px var(--cert-dark-green); }
+        .header h1 { margin: 0; font-size: 1.5em; color: var(--cert-dark-green); font-family: 'Times New Roman', Times, serif; }
+        .header p { margin: 4px 0 0; font-size: 0.9em; color: var(--cert-dark-text); }
+        .footer { text-align: center; padding: 10px; font-size: 0.8em; color: #777; flex-shrink: 0; }
+        .main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px; }
+        .chat-container { display: flex; flex-direction: column; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; }
+        .chat-header { background-color: var(--cert-dark-green); color: white; padding: 12px; text-align: center; font-size: 1.1em; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 15px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: #ffffff; }
+        .message { padding: 8px 12px; border-radius: 18px; max-width: 85%; line-height: 1.4; word-wrap: break-word; text-align: right; }
         .message a { color: #FFFFFF; text-decoration: underline; }
         .assistant-message a { color: var(--cert-dark-green); font-weight: bold; }
         .user-message { background-color: var(--cert-dark-green); color: white; align-self: flex-start; }
         .assistant-message { background-color: var(--cert-light-green-bg); color: var(--cert-dark-text); align-self: flex-end; }
         #typing-indicator { font-style: italic; color: #888; }
-        
         .chat-form-container { padding: 10px; border-top: 1px solid #ddd; background-color: #f9f9f9; flex-shrink: 0; }
-        .chat-form { display: flex; align-items: center; gap: 10px; }
+        .chat-form { display: flex; align-items: center; gap: 8px; }
         .chat-form input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 1em; text-align: right; }
         .chat-form input[type="file"] { display: none; }
         .chat-form label, .chat-form button { background-color: var(--cert-dark-green); color: white; border: none; padding: 10px; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5em; flex-shrink: 0; }
         #image-preview { font-size: 0.8em; color: #555; margin-top: 5px; text-align: center; }
+        @media (min-width: 800px) {
+            html, body { height: auto; overflow: auto; }
+            body { padding: 20px 0; }
+            .page-container { max-width: 800px; margin: 20px auto; height: auto; max-height: 90vh; min-height: 500px; border: 4px solid var(--cert-frame-black); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+        }
     </style>
 </head>
 <body>
@@ -113,11 +66,14 @@
                     <div class="message assistant-message">שלום, הגעת לקליניקה של ניקול. אני לולה, העוזרת שלה. איך אוכל לעזור?</div>
                 </div>
                 <div class="chat-form-container">
+                    <!-- ### MODIFIED ###: The order of elements is now corrected for RTL flexbox behavior -->
                     <form id="chat-form" class="chat-form">
-                        <!-- ### MODIFIED ###: Reordered elements for better RTL layout and to prevent cutoff -->
+                        <!-- The buttons now come FIRST in the HTML so they are rendered on the right in RTL -->
                         <button type="submit" title="Send">➤</button>
                         <label for="image-input" title="Attach Image">📎</label>
                         <input type="file" id="image-input" accept="image/*">
+                        
+                        <!-- The text input is now LAST, so it fills the remaining space on the left -->
                         <input type="text" id="message-input" placeholder="הקלד/י את הודעתך..." autocomplete="off">
                     </form>
                     <div id="image-preview"></div>
