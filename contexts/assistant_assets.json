@@ -7,6 +7,14 @@
     {
       "id": "paramedial_pedicure",
       "name_he": "פדיקור פרא רפואי"
+    },
+    {
+      "id": "ingrown_nail",
+      "name_he": "ציפורן חודרנית"
+    },
+    {
+      "id": "wart_removal",
+      "name_he": "הוצאת יבלת"
     }
   ],
   "handoff_message_he": "קיבלנו את פנייתך, תקבלי מענה תוך יום עסקים אחד על ידי ניקול.",

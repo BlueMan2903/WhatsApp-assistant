@@ -9,8 +9,7 @@ from config.logging_config import logger
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from .session import ConversationManager
-# ### REMOVED: We are no longer calling the Twilio handoff function from here
-# from twilio_whatsapp import send_handoff_message_to_nikol
+from email_notifier import send_error_email # ### NEW: Import the email handoff function
 
 class AIAssistant:
     """The AI assistant specifically for the Podiatrist Clinic."""
@@ -128,12 +127,32 @@ class AIAssistant:
         """
         logger.info(f"Executing action '{action}' for user {sender_id}")
         if action == "FORWARD_TO_NIKOL":
-            ### MODIFIED: The Twilio handoff is removed.
-            # For now, this action is only logged. In the future, you could add an email notification here.
             logger.info(f"HANDOFF ACTION TRIGGERED for user {sender_id}")
             logger.info(f"Customer Query: {user_message}")
             if image_url:
                 logger.info("An image was included in the handoff.")
+
+            # --- NEW: Send email handoff for NORMAL operations ---
+            try:
+                # We use self.session_manager here, which is available to the class
+                history_string = self.session_manager.get_formatted_history(sender_id)
+                
+                subject = f"Lola AI Bot - Handoff Request - User: {sender_id}"
+                body = (
+                    f"The AI has requested a human handoff for the user.\n\n"
+                    f"User: {sender_id}\n"
+                    f"Last Message: {user_message}\n"
+                    f"Image Sent: {'Yes' if image_url else 'No'}\n\n"
+                    f"--- CONVERSATION HISTORY ---\n"
+                    f"{history_string}"
+                )
+                
+                # Call the email notifier function
+                send_error_email(subject, body)
+
+            except Exception as e:
+                logger.error(f"Failed to send NORMAL handoff email: {e}")
+            
             return None # No follow-up message for the user
 
         elif action == "PROVIDE_BOOKING_LINK":
