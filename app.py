@@ -4,8 +4,6 @@ from flask_cors import CORS ### NEW: Import CORS for cross-origin requests
 from config.logging_config import logger
 from assistant.assistant import AIAssistant
 from assistant.session import ConversationManager
-# ### REMOVED: No longer need Twilio handoff in the main app file
-# from twilio_whatsapp import send_handoff_message_to_nikol
 import config.config as config
 import json
 
