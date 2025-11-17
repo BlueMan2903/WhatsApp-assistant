@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nikol Verbitsky - Podiatry Clinic</title>
     <style>
-        /* All CSS remains the same */
         :root {
             --cert-dark-green: #3A5A40;
             --cert-light-green-bg: #F0F3EF;
@@ -23,10 +22,11 @@
             overflow: hidden;
         }
         .page-container { height: 100dvh; background-color: var(--cert-off-white); display: flex; flex-direction: column; }
-        .header { text-align: center; padding: 15px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
-        .header .logo { width: 50px; height: 50px; font-size: 1em; margin: 0 auto 8px; border-radius: 50%; background-color: var(--cert-dark-green); color: var(--cert-off-white); display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid var(--cert-off-white); box-shadow: 0 0 0 2px var(--cert-dark-green); }
-        .header h1 { margin: 0; font-size: 1.5em; color: var(--cert-dark-green); font-family: 'Times New Roman', Times, serif; }
-        .header p { margin: 4px 0 0; font-size: 0.9em; color: var(--cert-dark-text); }
+        .header { text-align: center; padding: 10px 15px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
+        .header-logo {
+            height: 170px;
+            width: 170px;
+        }
         .footer { text-align: center; padding: 10px; font-size: 0.8em; color: #777; flex-shrink: 0; }
         .main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px; }
         .chat-container { display: flex; flex-direction: column; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; }
@@ -54,23 +54,21 @@
 <body>
     <div class="page-container">
         <header class="header">
-            <div class="logo">NV</div>
-            <h1>ניקול ורביצקי</h1>
-            <p>קליניקה מוסמכת לפדיקור</p>
+            <img src="nikol-logo.png" alt="לוגו ניקול ורביצקי" class="header-logo">
         </header>
 
         <main class="main-content">
             <div class="chat-container">
-                <div class="chat-header">צ'אט עם לולה</div>
+                <div class="chat-header">צ'אט</div>
                 <div class="chat-messages" id="chat-messages">
-                    <div class="message assistant-message">שלום, הגעת לקליניקה של ניקול. אני לולה, העוזרת שלה. איך אוכל לעזור?</div>
+                    <div class="message assistant-message">שלום, הגעת לקליניקה של ניקול. אני העוזרת שלה, איך אוכל לעזור?</div>
                 </div>
                 <div class="chat-form-container">
                     <!-- ### MODIFIED ###: The order of elements is now corrected for RTL flexbox behavior -->
                     <form id="chat-form" class="chat-form">
                         <!-- The buttons now come FIRST in the HTML so they are rendered on the right in RTL -->
                         <button type="submit" title="Send">➤</button>
-                        <label for="image-input" title="Attach Image">📎</label>
+                        <label for="image-input" title="Attach Image"><b>+</b></label>
                         <input type="file" id="image-input" accept="image/*">
                         
                         <!-- The text input is now LAST, so it fills the remaining space on the left -->
