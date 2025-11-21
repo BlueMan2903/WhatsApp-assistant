@@ -41,10 +41,10 @@ docker rm $CONTAINER_NAME || true
 
 echo -e "\n${GREEN}--- Step 3: Building the new image from project root... ---${NC}"
 # The build context is the project root, and we point to the Dockerfile with -f
-docker build --no-cache -t $IMAGE_NAME -f "${PROJECT_ROOT}/Docker/Dockerfile" "$PROJECT_ROOT"
+docker build --no-cache -t $IMAGE_NAME -f "${PROJECT_ROOT}/Dockerfile" "$PROJECT_ROOT"
 
 echo -e "\n${GREEN}--- Step 4: Starting the new container... ---${NC}"
-docker run -d -p 5000:5000 --env-file "${PROJECT_ROOT}/Docker/.env" --name $CONTAINER_NAME $IMAGE_NAME
+docker run -d -p 5000:5000 --env-file "${PROJECT_ROOT}/.env" --name $CONTAINER_NAME $IMAGE_NAME
 
 echo -e "\n${GREEN}--- Process complete! ---${NC}"
 echo "Container '$CONTAINER_NAME' is running with image '$IMAGE_NAME'."
