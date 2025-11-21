@@ -143,7 +143,10 @@
                 try {
                     const response = await fetch(apiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        },
                         body: JSON.stringify({ sender_id: senderId, message: message, image: image }),
                     });
                     if (!response.ok) { throw new Error(`HTTP error! Status: ${response.status}`); }
