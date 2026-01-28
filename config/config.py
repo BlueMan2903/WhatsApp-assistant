@@ -31,6 +31,7 @@ RETRY_DELAY = 10
 RESET_CHAT_ENABLED = True
 
 # --- NEW: Email Notifier Configuration (MailerSend) ---
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 MAILERSEND_API_TOKEN = os.getenv("MAILERSEND_API_TOKEN")
 # This is the "From" email you verified with MailerSend
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
