@@ -1,39 +1,44 @@
+import resend
 import config.config as config
 from config.logging_config import logger
-from mailersend import MailerSendClient, EmailBuilder
 
-def send_error_email(subject: str, body: str):
+def _send_email_base(subject: str, body: str, log_context: str):
     """
-    Sends an error notification email using the MailerSend API.
+    Sends an email using Resend.
     """
-    
-    # Check if MailerSend configuration is missing
-    if not all([config.MAILERSEND_API_TOKEN, config.SENDER_EMAIL, config.NIKOL_EMAIL_ADDRESS]):
-        logger.error("EMAIL HANDOFF FAILED: Missing MAILERSEND_API_TOKEN, SENDER_EMAIL, or NIKOL_EMAIL_ADDRESS in .env")
+    if not config.RESEND_API_KEY:
+        logger.error(f"{log_context}: Missing RESEND_API_KEY in .env")
         return
 
-    logger.info(f"Attempting to send error email via MailerSend to {config.NIKOL_EMAIL_ADDRESS}...")
+    resend.api_key = config.RESEND_API_KEY
+
+    # FOR TESTING: Use 'onboarding@resend.dev' as the sender.
+    # It only allows sending emails TO the email address you signed up with.
+    # Once you verify a domain (e.g., nikol.clinic), you can change 'from' to 'Lola <info@nikol.clinic>'
+    
+    from_email = "Lola <onboarding@resend.dev>"
+    
+    params = {
+        "from": from_email,
+        "to": [config.NIKOL_EMAIL_ADDRESS],
+        "subject": subject,
+        "text": body,
+    }
 
     try:
-        # 1. Initialize the MailerSend client
-        ms = MailerSendClient(config.MAILERSEND_API_TOKEN)
-
-        # 2. Define the email parameters
-        email_params = (EmailBuilder()
-                        .from_email(config.SENDER_EMAIL, "Lola AI Bot")
-                        .to_many([{"email": config.NIKOL_EMAIL_ADDRESS, "name": "Nikol"}])
-                        .subject(subject)
-                        .text(body)
-                        .build())
-
-        # 3. Send the email
-        response = ms.emails.send(email_params)
-        
-        if 200 <= response.status_code < 300:
-             logger.info(f"Email handoff sent successfully! Status code: {response.status_code}")
+        email = resend.Emails.send(params)
+        # Resend returns an object, we check if 'id' exists
+        if hasattr(email, 'id'): 
+             logger.info(f"{log_context} Email sent successfully! ID: {email.id}")
         else:
-            logger.error(f"FATAL EMAIL HANDOFF ERROR: MailerSend returned status {response.status_code}")
-            logger.error(f"Response: {response.text}")
+             # Sometimes it returns a dict depending on version
+             logger.info(f"{log_context} Email sent successfully! Response: {email}")
 
     except Exception as e:
-        logger.error(f"FATAL EMAIL HANDOFF ERROR: Failed to send email via MailerSend: {e}", exc_info=True)
+        logger.error(f"{log_context} FATAL ERROR: Failed to send via Resend: {e}", exc_info=True)
+
+def send_error_email(subject: str, body: str):
+    _send_email_base(subject, body, "HANDOFF/ERROR")
+
+def send_startup_email():
+    _send_email_base("System Alert: Lola Initialized", "Lola is online and ready.", "SYSTEM STARTUP")
