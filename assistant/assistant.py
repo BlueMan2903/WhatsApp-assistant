@@ -1,7 +1,3 @@
-# assistant.py
-
-import base64
-import requests
 import json
 import config.config as config
 import re
@@ -9,7 +5,7 @@ from config.logging_config import logger
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from .session import ConversationManager
-from email_notifier import send_error_email # ### NEW: Import the email handoff function
+from email_notifier import send_error_email
 
 class AIAssistant:
     """The AI assistant specifically for the Podiatrist Clinic."""
@@ -24,6 +20,10 @@ class AIAssistant:
             model=config.MODEL,
             **config.MODEL_CONFIG
         )
+        
+        # Load assets to get the Hebrew handoff message
+        with open("contexts/assistant_assets.json", 'r', encoding='utf-8') as f:
+            self.assets = json.load(f)
 
     def _load_file(self, path):
         """Helper to load a text file."""
@@ -38,22 +38,6 @@ class AIAssistant:
             data = json.dumps(json.load(f), ensure_ascii=False)
         
         return f"{intro}\n{rules}\n{data}"
-
-    ### MODIFIED: This method is now OBSOLETE as the frontend sends base64 directly.
-    # It's no longer called in the main workflow.
-    def _get_image_base64(self, image_url: str) -> str | None:
-        """Fetches an image from a Twilio URL and returns it as a base64 string."""
-        logger.warning("DEPRECATED: _get_image_base64 should no longer be called.")
-        try:
-            response = requests.get(
-                image_url,
-                auth=(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN)
-            )
-            response.raise_for_status()
-            return base64.b64encode(response.content).decode("utf-8")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching image from Twilio: {e}")
-            raise Exception(f"Twilio image download failed: {e}")
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> list[str]:
         """
@@ -78,11 +62,9 @@ class AIAssistant:
             if user_message:
                 content_parts.append({"type": "text", "text": user_message})
             
-            ### MODIFIED: This section now handles the base64 data URL directly.
             if image_url:
                 try:
-                    # A data URL looks like "data:image/jpeg;base64,iVBORw0KGgo..."
-                    # We just need the part after the comma.
+                    # Handle base64 data URL
                     base64_image = image_url.split(",")[1]
                     content_parts.append({
                         "type": "image_url",
@@ -100,6 +82,11 @@ class AIAssistant:
             # --- Get LLM response and parse for actions ---
             model_response = self.llm.invoke(history)
             ai_content = model_response.content
+            
+            # Handle cases where Gemini returns a list instead of a string
+            if isinstance(ai_content, list):
+                ai_content = "".join([str(item) for item in ai_content])
+
             history.append(AIMessage(content=ai_content))
 
             messages_to_send = []
@@ -126,34 +113,21 @@ class AIAssistant:
         Executes background tasks and returns content for any follow-up messages.
         """
         logger.info(f"Executing action '{action}' for user {sender_id}")
+        
         if action == "FORWARD_TO_NIKOL":
             logger.info(f"HANDOFF ACTION TRIGGERED for user {sender_id}")
-            logger.info(f"Customer Query: {user_message}")
-            if image_url:
-                logger.info("An image was included in the handoff.")
-
-            # --- NEW: Send email handoff for NORMAL operations ---
-            try:
-                # We use self.session_manager here, which is available to the class
-                history_string = self.session_manager.get_formatted_history(sender_id)
-                
-                subject = f"Lola AI Bot - Handoff Request - User: {sender_id}"
-                body = (
-                    f"The AI has requested a human handoff for the user.\n\n"
-                    f"User: {sender_id}\n"
-                    f"Last Message: {user_message}\n"
-                    f"Image Sent: {'Yes' if image_url else 'No'}\n\n"
-                    f"--- CONVERSATION HISTORY ---\n"
-                    f"{history_string}"
-                )
-                
-                # Call the email notifier function
-                send_error_email(subject, body)
-
-            except Exception as e:
-                logger.error(f"Failed to send NORMAL handoff email: {e}")
             
-            return None # No follow-up message for the user
+            # ### NEW: Send email notification to Nikol
+            try:
+                subject = f"New Lead via Chat: {sender_id}"
+                body = f"A user has reached a handoff point.\n\nUser ID: {sender_id}\nLast Message: {user_message}\nImage Included: {'Yes' if image_url else 'No'}"
+                send_error_email(subject, body)
+                logger.info("Handoff email sent successfully.")
+            except Exception as e:
+                logger.error(f"Failed to send handoff email: {e}")
+
+            # Return the Hebrew handoff message to the user
+            return self.assets.get("handoff_message_he", "קיבלנו את פנייתך, ניקול תיצור איתך קשר בהקדם.")
 
         elif action == "PROVIDE_BOOKING_LINK":
             return f"ניתן לקבוע תור דרך הקישור הבא:\n{config.BOOKING_URL}"
