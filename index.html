@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nikol Verbitsky - Podiatry Clinic</title>
+    <style>
+        :root {
+            --cert-dark-green: #3A5A40;
+            --cert-light-green-bg: #F0F3EF;
+            --cert-off-white: #F9F9F9;
+            --cert-dark-text: #333333;
+            --cert-frame-black: #2c2c2c;
+        }
+        html { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            background-color: var(--cert-light-green-bg);
+            color: var(--cert-dark-text);
+            height: 100%;
+            overflow: hidden;
+        }
+        .page-container { height: 100dvh; background-color: var(--cert-off-white); display: flex; flex-direction: column; }
+        .header { text-align: center; padding: 10px 15px; border-bottom: 2px solid var(--cert-dark-green); flex-shrink: 0; }
+        .header-logo {
+            height: 170px;
+            width: 170px;
+        }
+        .footer { text-align: center; padding: 10px; font-size: 0.8em; color: #777; flex-shrink: 0; }
+        .main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px; }
+        .chat-container { display: flex; flex-direction: column; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; }
+        .chat-header { background-color: var(--cert-dark-green); color: white; padding: 12px; text-align: center; font-size: 1.1em; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 15px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: #ffffff; }
+        .message { padding: 8px 12px; border-radius: 18px; max-width: 85%; line-height: 1.4; word-wrap: break-word; text-align: right; }
+        .message a { color: #FFFFFF; text-decoration: underline; }
+        .assistant-message a { color: var(--cert-dark-green); font-weight: bold; }
+        .user-message { background-color: var(--cert-dark-green); color: white; align-self: flex-start; }
+        .assistant-message { background-color: var(--cert-light-green-bg); color: var(--cert-dark-text); align-self: flex-end; }
+        #typing-indicator { font-style: italic; color: #888; }
+        .chat-form-container { padding: 10px; border-top: 1px solid #ddd; background-color: #f9f9f9; flex-shrink: 0; }
+        .chat-form { display: flex; align-items: center; gap: 8px; }
+        .chat-form input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 1em; text-align: right; }
+        .chat-form input[type="file"] { display: none; }
+        .chat-form label, .chat-form button { background-color: var(--cert-dark-green); color: white; border: none; padding: 10px; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5em; flex-shrink: 0; }
+        #image-preview { font-size: 0.8em; color: #555; margin-top: 5px; text-align: center; }
+        @media (min-width: 800px) {
+            html, body { height: auto; overflow: auto; }
+            body { padding: 20px 0; }
+            .page-container { max-width: 800px; margin: 20px auto; height: auto; max-height: 90vh; min-height: 500px; border: 4px solid var(--cert-frame-black); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <header class="header">
+            <img src="nikol-logo.png" alt="לוגו ניקול ורביצקי" class="header-logo">
+        </header>
+
+        <main class="main-content">
+            <div class="chat-container">
+                <div class="chat-header">צ'אט</div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant-message">שלום, הגעת לקליניקה של ניקול. אני העוזרת שלה, איך אוכל לעזור?</div>
+                </div>
+                <div class="chat-form-container">
+                    <!-- ### MODIFIED ###: The order of elements is now corrected for RTL flexbox behavior -->
+                    <form id="chat-form" class="chat-form">
+                        <!-- The buttons now come FIRST in the HTML so they are rendered on the right in RTL -->
+                        <button type="submit" title="Send">➤</button>
+                        <label for="image-input" title="Attach Image"><b>+</b></label>
+                        <input type="file" id="image-input" accept="image/*">
+                        
+                        <!-- The text input is now LAST, so it fills the remaining space on the left -->
+                        <input type="text" id="message-input" placeholder="הקלד/י את הודעתך..." autocomplete="off">
+                    </form>
+                    <div id="image-preview"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 ניקול ורביצקי. כל הזכויות שמורות.</p>
+        </footer>
+    </div>
+
+    <script>
+        // The JavaScript logic remains exactly the same.
+        document.addEventListener("DOMContentLoaded", function() {
+            const chatForm = document.getElementById('chat-form');
+            const chatMessages = document.getElementById('chat-messages');
+            const messageInput = document.getElementById('message-input');
+            const imageInput = document.getElementById('image-input');
+            const imagePreview = document.getElementById('image-preview');
+            
+            let senderId = localStorage.getItem('chat_sender_id') || 'web_user_' + Date.now() + Math.random().toString(36).substr(2, 9);
+            if (!localStorage.getItem('chat_sender_id')) { localStorage.setItem('chat_sender_id', senderId); }
+            let imageBase64 = null;
+
+            function linkifyText(text) {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+            }
+
+            function handleSendMessage() {
+                const messageText = messageInput.value.trim();
+                if (!messageText && !imageBase64) { return; }
+                addMessage(messageText, 'user', imageBase64);
+                sendMessageToServer(messageText, imageBase64);
+                messageInput.value = '';
+                imageInput.value = '';
+                imagePreview.textContent = '';
+                imageBase64 = null;
+            }
+
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        imagePreview.textContent = 'שגיאה: התמונה חייבת להיות מתחת ל-5MB.';
+                        imageInput.value = '';
+                        return;
+                    }
+                    imagePreview.textContent = `שולח תמונה: ${file.name}...`;
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imageBase64 = event.target.result;
+                        handleSendMessage();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleSendMessage();
+            });
+
+            async function sendMessageToServer(message, image) {
+                // !!! REMEMBER to update your Ngrok URL here !!!
+                const apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/chat'; 
+                addMessage("לולה מקלידה...", "assistant", null, true);
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        },
+                        body: JSON.stringify({ sender_id: senderId, message: message, image: image }),
+                    });
+                    if (!response.ok) { throw new Error(`HTTP error! Status: ${response.status}`); }
+                    const data = await response.json();
+                    document.getElementById('typing-indicator')?.remove();
+                    addMessage(data.response, 'assistant');
+                } catch (error) {
+                    console.error('Error communicating with the assistant:', error);
+                    document.getElementById('typing-indicator')?.remove();
+                    addMessage("מצטערת, לא הצלחתי להתחבר לשרת. אנא ודא/י שהשרת המקומי פועל ונסה/י שוב.", 'assistant');
+                }
+            }
+
+            function addMessage(text, sender, imageSrc = null, isTyping = false) {
+                if (!text && sender === 'user' && !imageSrc) return; 
+                const messageContainer = document.createElement('div');
+                messageContainer.classList.add('message', `${sender}-message`);
+
+                if (imageSrc && sender === 'user') {
+                    const img = document.createElement('img');
+                    img.src = imageSrc;
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '10px';
+                    img.style.marginBottom = text ? '8px' : '0';
+                    messageContainer.appendChild(img);
+                }
+
+                if (text) {
+                    const textNode = document.createElement('div');
+                    if (sender === 'assistant') {
+                        textNode.innerHTML = linkifyText(text);
+                    } else {
+                        textNode.innerText = text;
+                    }
+                    messageContainer.appendChild(textNode);
+                }
+
+                if (isTyping) { messageContainer.id = 'typing-indicator'; }
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>
