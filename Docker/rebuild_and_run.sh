@@ -6,7 +6,7 @@ set -e # Exit immediately if a command exits with a non-zero status
 # and starts the Docker container.
 
 # --- Configuration ---
-CONTAINER_NAME="test-container"
+CONTAINER_NAME="lola-assistant"
 IMAGE_BASE_NAME="whatsapp-assistant"
 
 # --- Add color for readability ---

@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from email_notifier import send_startup_email, send_error_email
 from config.logging_config import logger
@@ -8,7 +8,7 @@ from assistant.session import ConversationManager
 import config.config as config
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='/static')
 CORS(app)
 
 try:
@@ -27,6 +27,9 @@ except (ValueError, FileNotFoundError) as e:
     assistant = None
     HANDOFF_MESSAGE_HE = "אנו כרגע חווים תקלה טכנית. ניקול תיצור איתך קשר בקרוב"
 
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/chat", methods=['POST'])
 def chat_api():

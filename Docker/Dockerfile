@@ -1,24 +1,43 @@
-# Dockerfile
+# --- STAGE 1: Builder ---
+# This stage installs dependencies into a virtual environment.
+FROM python:3.11-slim AS builder
 
-# 1. Use an official Python runtime as a parent image
-# Using python:3.13-slim to match your development environment while keeping the image small
+# Install uv, our package manager
+RUN pip install uv
+
+# Set up a non-root user for security
+RUN useradd --create-home appuser
+WORKDIR /home/appuser
+
+# Create a virtual environment
+RUN uv venv .venv
+
+# Copy only the dependency definition files to leverage Docker's cache
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies into the virtual environment using the lock file
+# This is the core of the reproducible build
+RUN . .venv/bin/activate && uv sync
+
+# --- STAGE 2: Final Image ---
+# This stage copies the pre-installed dependencies and the app code.
 FROM python:3.11-slim
 
-# 2. Set the working directory inside the container
-WORKDIR /app
+# Set up the same non-root user
+RUN useradd --create-home appuser
+USER appuser
+WORKDIR /home/appuser
 
-# 3. Copy and install the dependencies
-# This is done first to leverage Docker's layer caching for faster builds
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the virtual environment with all its dependencies from the builder stage
+COPY --from=builder /home/appuser/.venv ./.venv
 
-# 4. Copy the rest of your application's code into the container
-# This includes app.py, the 'assistant/' package, 'contexts/', etc.
+# Copy the rest of the application code
 COPY . .
 
-# 5. Expose the port that Gunicorn will run on
+# Set the PATH to include the virtual environment's binaries
+# This ensures that 'gunicorn' and other packages are found
+ENV PATH="/home/appuser/.venv/bin:$PATH"
+
 EXPOSE 5000
 
-# 6. Define the command to run the app using the Gunicorn server
-# Binds the server to all network interfaces on port 5000
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]

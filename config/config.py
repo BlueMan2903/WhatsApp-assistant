@@ -3,17 +3,19 @@ import os
 
 # Gemini config
 MODEL = "gemini-2.5-flash"
+# MODEL = "gemini-3-flash-preview"
 MODEL_CONFIG = {
     "model_provider": "google_genai",
     "google_api_key": os.getenv("GEMINI_API_KEY")
 }
 
-# OpenAI config
-# MODEL = "gpt-5-mini"  
-# MODEL_CONFIG = {
-#     "model_provider": "openai",
-#     "openai_api_key": os.getenv("OPENAI_API_KEY")
-# }
+ENVIRONMENT = os.getenv("ENVIRONMENT", "testing")
+if ENVIRONMENT == "production":
+    # The specific URL you requested for production
+    CHAT_API_URL = "https://stirring-yearly-anteater.ngrok-free.app/chat"
+else:
+    # Relative path for local/testing (avoids CORS and network issues)
+    CHAT_API_URL = "/chat"
 
 NGROK_SETUP = "ngrok config add-authtoken 31btVlpGpJvGNMgMuVoDhie3nhS_2XL9vKr9Dsyu3hoQP5hfq"
 NGROK_COMMAND = "ngrok http --url=stirring-yearly-anteater.ngrok-free.app 5000"
