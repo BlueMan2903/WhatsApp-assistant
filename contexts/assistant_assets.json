@@ -1,22 +1,26 @@
 {
   "appointment_types": [
-    {
-      "id": "nail_cleaning",
-      "name_he": "ניקוי ציפורניים"
-    },
-    {
-      "id": "paramedial_pedicure",
-      "name_he": "פדיקור פרא רפואי"
-    },
-    {
-      "id": "ingrown_nail",
-      "name_he": "ציפורן חודרנית"
-    },
-    {
-      "id": "wart_removal",
-      "name_he": "הוצאת יבלת"
-    }
+    { "id": "nail_cleaning", "name_he": "ניקוי ציפורניים" },
+    { "id": "paramedial_pedicure", "name_he": "פדיקור פרא רפואי" },
+    { "id": "ingrown_nail", "name_he": "ציפורן חודרנית" },
+    { "id": "wart_removal", "name_he": "הוצאת יבלת" }
   ],
   "handoff_message_he": "קיבלנו את פנייתך, תקבלי מענה תוך יום עסקים אחד על ידי ניקול.",
-  "diabetes_referral_message_he": "בשל השימוש בזריקות אינסולין, יש לתאם את הטיפול מול מרפאת הסוכרת בקופת החולים שלך. אנו כאן לכל שאלה נוספת."
+  "diabetes_referral_message_he": "בשל השימוש בזריקות אינסולין, יש לתאם את הטיפול מול מרפאת הסוכרת בקופת החולים שלך. אנו כאן לכל שאלה נוספת.",
+  "price_list_he": {
+    "paramedical_pedicure": "250 ש״ח (ניקוי כף הרגל וניקוי הציפורניים, ללא מחלות)",
+    "add_ons": {
+      "fungus_per_nail": "50 ש״ח (פטרת בציפורניים - מחיר לציפורן)",
+      "root_wart": "50-120 ש״ח (יבלת שורש)",
+      "viral_wart": "100 ש״ח (יבלת ויראלית)",
+      "cracks": "50-100 ש״ח (סדקים)",
+      "nail_cleaning_only": "200 ש״ח (רק ניקוי ציפורניים/פטרת)"
+    },
+    "ingrown_nail": {
+      "conservative_treatment": "200 ש״ח (שיטה שמרנית)",
+      "titanium_wire": "300 ש״ח (חוט טיטניום)",
+      "nail_cutting": "100 ש״ח (גזירת ציפורניים)"
+    },
+    "cosmetic_pedicure_gel": "400 ש״ח (פדיקור קוסמטי ולק ג׳ל)"
+  }
 }

@@ -8,7 +8,7 @@ from assistant.session import ConversationManager
 import config.config as config
 import json
 
-app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='/static')
+app = Flask(__name__, template_folder='.', static_folder='static', static_url_path='/static')
 CORS(app)
 
 try:
