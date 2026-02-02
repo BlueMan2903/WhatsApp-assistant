@@ -1,43 +1,52 @@
-# --- STAGE 1: Builder ---
-# This stage installs dependencies into a virtual environment.
-FROM python:3.11-slim AS builder
+# Docker/Dockerfile
+FROM python:3.11-slim as builder
 
-# Install uv, our package manager
+# --- FIX: Install Build Essentials AND libffi-dev ---
+# build-essential: for GCC
+# libffi-dev: for compiling cffi (required by google-auth/cryptography)
+# curl: for downloading tools if needed
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libffi-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
 RUN pip install uv
 
-# Set up a non-root user for security
+# Create a non-root user
 RUN useradd --create-home appuser
 WORKDIR /home/appuser
 
-# Create a virtual environment
-RUN uv venv .venv
+# Force uv to use the System Python (3.11)
+ENV UV_PYTHON=python3.11
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
 
-# Copy only the dependency definition files to leverage Docker's cache
+# Create the venv explicitly
+RUN uv venv /opt/venv --python 3.11
+
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies into the virtual environment using the lock file
-# This is the core of the reproducible build
-RUN . .venv/bin/activate && uv sync
+# Install dependencies
+RUN uv sync --frozen --no-install-project
 
-# --- STAGE 2: Final Image ---
-# This stage copies the pre-installed dependencies and the app code.
 FROM python:3.11-slim
 
-# Set up the same non-root user
+# Create the user
 RUN useradd --create-home appuser
-USER appuser
 WORKDIR /home/appuser
 
-# Copy the virtual environment with all its dependencies from the builder stage
-COPY --from=builder /home/appuser/.venv ./.venv
+# Copy the safe venv from builder
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy the rest of the application code
+# Copy application code
 COPY . .
 
-# Set the PATH to include the virtual environment's binaries
-# This ensures that 'gunicorn' and other packages are found
-ENV PATH="/home/appuser/.venv/bin:$PATH"
+# Add venv to PATH
+ENV PATH="/opt/venv/bin:$PATH"
 
+# Expose the Flask port
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Run Gunicorn
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
