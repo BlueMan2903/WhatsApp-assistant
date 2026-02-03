@@ -1,24 +1,52 @@
-# Dockerfile
+# Docker/Dockerfile
+FROM python:3.11-slim as builder
 
-# 1. Use an official Python runtime as a parent image
-# Using python:3.13-slim to match your development environment while keeping the image small
+# --- FIX: Install Build Essentials AND libffi-dev ---
+# build-essential: for GCC
+# libffi-dev: for compiling cffi (required by google-auth/cryptography)
+# curl: for downloading tools if needed
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libffi-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Create a non-root user
+RUN useradd --create-home appuser
+WORKDIR /home/appuser
+
+# Force uv to use the System Python (3.11)
+ENV UV_PYTHON=python3.11
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+
+# Create the venv explicitly
+RUN uv venv /opt/venv --python 3.11
+
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen --no-install-project
+
 FROM python:3.11-slim
 
-# 2. Set the working directory inside the container
-WORKDIR /app
+# Create the user
+RUN useradd --create-home appuser
+WORKDIR /home/appuser
 
-# 3. Copy and install the dependencies
-# This is done first to leverage Docker's layer caching for faster builds
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the safe venv from builder
+COPY --from=builder /opt/venv /opt/venv
 
-# 4. Copy the rest of your application's code into the container
-# This includes app.py, the 'assistant/' package, 'contexts/', etc.
+# Copy application code
 COPY . .
 
-# 5. Expose the port that Gunicorn will run on
+# Add venv to PATH
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Expose the Flask port
 EXPOSE 5000
 
-# 6. Define the command to run the app using the Gunicorn server
-# Binds the server to all network interfaces on port 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Run Gunicorn
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]

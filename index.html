@@ -42,6 +42,13 @@
         .chat-form { display: flex; align-items: center; gap: 8px; }
         .chat-form input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 1em; text-align: right; }
         .chat-form input[type="file"] { display: none; }
+        .chat-image-insert {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+            border: 1px solid #ddd;
+            display: block;
+        }
         .chat-form label, .chat-form button { background-color: var(--cert-dark-green); color: white; border: none; padding: 10px; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5em; flex-shrink: 0; }
         #image-preview { font-size: 0.8em; color: #555; margin-top: 5px; text-align: center; }
         @media (min-width: 800px) {
@@ -54,7 +61,7 @@
 <body>
     <div class="page-container">
         <header class="header">
-            <img src="nikol-logo.png" alt="לוגו ניקול ורביצקי" class="header-logo">
+            <img src="/static/nikol-logo.png" alt="לוגו ניקול ורביצקי" class="header-logo">
         </header>
 
         <main class="main-content">
@@ -137,8 +144,16 @@
             });
 
             async function sendMessageToServer(message, image) {
-                // !!! REMEMBER to update your Ngrok URL here !!!
-                const apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/chat'; 
+                let apiUrl;
+                
+                // Check if we are running on localhost or 127.0.0.1
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // LOCAL DEV: Use the relative path. Flask handles the routing.
+                    apiUrl = '/chat';
+                } else {
+                    // PRODUCTION (GitHub Pages): Point to the persistent Ngrok URL
+                    apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/chat';
+                }
                 addMessage("לולה מקלידה...", "assistant", null, true);
                 try {
                     const response = await fetch(apiUrl, {

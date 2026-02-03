@@ -1,62 +1,44 @@
 #!/bin/bash
-set -e # Exit immediately if a command exits with a non-zero status
-
-# rebuild_and_run.sh
-# This script prompts for a version tag, then stops, removes, rebuilds,
-# and starts the Docker container.
+set -e
 
 # --- Configuration ---
-CONTAINER_NAME="test-container"
-IMAGE_BASE_NAME="whatsapp-assistant"
-
-# --- Add color for readability ---
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# --- Robustly find the project root directory ---
+# --- Find Project Root ---
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_ROOT=$( cd -- "$SCRIPT_DIR/.." &> /dev/null && pwd )
 
 echo -e "${GREEN}--- Project root identified at: ${PROJECT_ROOT} ---${NC}"
 
-# --- Prompt user for a version tag ---
-echo -e "\n${CYAN}Please provide a version tag for the Docker image.${NC}"
-read -p "Enter tag (e.g., v1.1) or press Enter for 'latest': " TAG
+# Define paths
+COMPOSE_FILE="${PROJECT_ROOT}/Docker/docker-compose.yml"
+ENV_FILE="${PROJECT_ROOT}/.env"
 
-if [ -z "$TAG" ]; then
-  TAG="latest"
-fi
-
-IMAGE_NAME="${IMAGE_BASE_NAME}:${TAG}"
-echo -e "${GREEN}Will use image tag: ${IMAGE_NAME}${NC}"
-
-# --- Execute Docker commands from the project root ---
-echo -e "\n${GREEN}--- Step 1: Stopping the existing container... ---${NC}"
-# We allow this to fail (|| true) in case the container doesn't exist yet
-docker stop $CONTAINER_NAME || true
-
-echo -e "\n${GREEN}--- Step 2: Removing the old container... ---${NC}"
-docker rm $CONTAINER_NAME || true
-
-echo -e "\n${GREEN}--- Step 3: Building the new image from project root... ---${NC}"
-
-# Check if build succeeds. If not, print error and exit.
-if docker build --no-cache -t $IMAGE_NAME -f "${PROJECT_ROOT}/Docker/Dockerfile" "$PROJECT_ROOT"; then
-    echo -e "${GREEN}Build successful.${NC}"
-else
-    echo -e "${RED}ERROR: Docker build failed! Aborting script.${NC}"
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo -e "${RED}Error: docker-compose.yml not found at $COMPOSE_FILE${NC}"
     exit 1
 fi
 
-echo -e "\n${GREEN}--- Step 4: Starting the new container... ---${NC}"
-# We also check if the run command works
-if docker run -d -p 5000:5000 --env-file "${PROJECT_ROOT}/.env" --name $CONTAINER_NAME $IMAGE_NAME; then
-    echo -e "\n${GREEN}--- Process complete! ---${NC}"
-    echo "Container '$CONTAINER_NAME' is running with image '$IMAGE_NAME'."
-    echo "You can view logs with: docker logs -f $CONTAINER_NAME"
+if [ ! -f "$ENV_FILE" ]; then
+    echo -e "${RED}Error: .env file not found at $ENV_FILE${NC}"
+    exit 1
+fi
+
+echo -e "\n${GREEN}--- Step 1: Stopping and removing old containers... ---${NC}"
+# CHANGED: 'docker-compose' -> 'docker compose'
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans || true
+
+echo -e "\n${GREEN}--- Step 2: Rebuilding and starting the stack... ---${NC}"
+# CHANGED: 'docker-compose' -> 'docker compose'
+if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d; then
+    echo -e "\n${GREEN}--- Process complete! Stack is running. ---${NC}"
+    echo -e "${CYAN}Backend and Ngrok are now active.${NC}"
+    # CHANGED: Updated the help text to suggest the new command
+    echo "To view logs: docker compose -f Docker/docker-compose.yml logs -f"
 else
-    echo -e "${RED}ERROR: Failed to start the container.${NC}"
+    echo -e "${RED}ERROR: Failed to start the stack.${NC}"
     exit 1
 fi

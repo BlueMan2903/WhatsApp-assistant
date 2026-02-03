@@ -176,3 +176,5 @@ cython_debug/
 .pypirc
 
 .DS_Store
+
+context_for_llm.txt
