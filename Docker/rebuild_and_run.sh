@@ -28,14 +28,16 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 echo -e "\n${GREEN}--- Step 1: Stopping and removing old containers... ---${NC}"
-# We explicitly load the .env file so variable substitution works
-docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans || true
+# CHANGED: 'docker-compose' -> 'docker compose'
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans || true
 
 echo -e "\n${GREEN}--- Step 2: Rebuilding and starting the stack... ---${NC}"
-if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d; then
+# CHANGED: 'docker-compose' -> 'docker compose'
+if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d; then
     echo -e "\n${GREEN}--- Process complete! Stack is running. ---${NC}"
     echo -e "${CYAN}Backend and Ngrok are now active.${NC}"
-    echo "To view logs: docker-compose -f Docker/docker-compose.yml logs -f"
+    # CHANGED: Updated the help text to suggest the new command
+    echo "To view logs: docker compose -f Docker/docker-compose.yml logs -f"
 else
     echo -e "${RED}ERROR: Failed to start the stack.${NC}"
     exit 1
