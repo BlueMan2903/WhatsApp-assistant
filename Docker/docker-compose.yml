@@ -1,20 +1,20 @@
 services:
   assistant-backend:
-    build:
-      context: ..                 # Sets the build context to the Project Root
-      dockerfile: Docker/Dockerfile  
+    # CHANGED: Now uses the ${TAG} variable. 
+    # The ':-latest' part means "if no tag is provided, default to latest" (safety net).
+    image: blueman2903/lola-backend:${TAG:-latest}
+    
     container_name: assistant-backend
     restart: always
     ports:
       - "5000:5000"
     env_file:
-      - ../.env                   
+      - ../.env
 
   ngrok:
     image: ngrok/ngrok:alpine
     container_name: ngrok-sidecar
     restart: always
-    # We address the container by its service name "assistant-backend"
     command: http --domain=stirring-yearly-anteater.ngrok-free.app assistant-backend:5000
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
@@ -23,4 +23,4 @@ services:
     depends_on:
       - assistant-backend
     env_file:
-      - ../.env                   # Loads NGROK_AUTHTOKEN from the root .env
+      - ../.env
