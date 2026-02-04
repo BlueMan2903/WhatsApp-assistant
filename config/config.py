@@ -1,40 +1,33 @@
-# config.py
 import os
 
-# Gemini config
-MODEL = "gemini-2.5-flash"
-# MODEL = "gemini-3-flash-preview"
+# --- Gemini Configuration ---
+# Uses the model defined in .env, or defaults to 2.5-flash if missing
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 MODEL_CONFIG = {
     "model_provider": "google_genai",
     "google_api_key": os.getenv("GEMINI_API_KEY")
 }
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "testing")
-if ENVIRONMENT == "production":
-    # The specific URL you requested for production
-    CHAT_API_URL = "https://stirring-yearly-anteater.ngrok-free.app/chat"
-else:
-    # Relative path for local/testing (avoids CORS and network issues)
-    CHAT_API_URL = "/chat"
-
-NGROK_SETUP = "ngrok config add-authtoken 31btVlpGpJvGNMgMuVoDhie3nhS_2XL9vKr9Dsyu3hoQP5hfq"
+# (Optional) Reference command, logic doesn't use this directly but good for docs
 NGROK_COMMAND = "ngrok http --url=stirring-yearly-anteater.ngrok-free.app 5000"
 
+# --- Booking ---
 BOOKING_URL = os.getenv("BOOKING_URL")
 
-# Enable delay for simulating human response time
-DELAY = False
+# --- Dynamic Logic Settings (Loaded from .env) ---
+# .env values are strings, so we must convert them to Booleans/Integers
 
-# Retry config for sending whatsapp message
-MAX_RETRIES = 5
-# delay in seconds
-RETRY_DELAY = 10
+# "False" string -> False boolean
+DELAY = os.getenv("ENABLE_HUMAN_DELAY", "False").lower() == "true"
 
-RESET_CHAT_ENABLED = True
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", 5))
+RETRY_DELAY = int(os.getenv("RETRY_DELAY", 10))
 
-# --- NEW: Email Notifier Configuration (Resend) ---
+RESET_CHAT_ENABLED = os.getenv("RESET_CHAT_ENABLED", "True").lower() == "true"
+
+# --- Email Configuration ---
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-# This is the "From" email you verified with MailerSend
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-# This is the email address you want to send alerts TO
+# Default to the testing sender if not set in .env
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "onboarding@resend.dev") 
 NIKOL_EMAIL_ADDRESS = os.getenv("NIKOL_EMAIL_ADDRESS")
