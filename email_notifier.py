@@ -10,12 +10,7 @@ def _send_email_base(subject: str, body: str, log_context: str):
         logger.error(f"{log_context}: Missing RESEND_API_KEY in .env")
         return
 
-    resend.api_key = config.RESEND_API_KEY
-
-    # FOR TESTING: Use 'onboarding@resend.dev' as the sender.
-    # It only allows sending emails TO the email address you signed up with.
-    # Once you verify a domain (e.g., nikol.clinic), you can change 'from' to 'Lola <info@nikol.clinic>'
-    
+    resend.api_key = config.RESEND_API_KEY    
     from_email = "Lola <onboarding@resend.dev>"
     
     params = {
