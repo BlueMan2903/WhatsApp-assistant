@@ -48,14 +48,14 @@ def chat_api():
         return jsonify({"error": "sender_id is required."}), 400
 
     logger.info(
-        f"Incoming message from {sender_id} | Media: {'Yes' if image_data_url else 'No'} | Body: '{incoming_msg[::-1]}'"
+        f"Incoming message from {sender_id} | Media: {'Yes' if image_data_url else 'No'} | Body: '{incoming_msg}'"
     )
 
     try:
         list_of_messages = assistant.get_response(sender_id, incoming_msg, image_data_url)
         full_response = "\n".join(filter(None, list_of_messages))
         
-        logger.info(f"Outgoing message to {sender_id} | Body: '{full_response[::-1]}'")
+        logger.info(f"Outgoing message to {sender_id} | Body: '{full_response}'")
 
         return jsonify({"response": full_response})
     
