@@ -10,6 +10,7 @@ dependencies = [
     "gunicorn>=25.0.0",
     "langchain>=1.2.7",
     "langchain-google-genai>=4.2.0",
+    "python-bidi>=0.6.7",
     "python-dotenv>=1.2.1",
     "resend>=2.21.0",
 ]
