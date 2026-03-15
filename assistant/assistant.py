@@ -31,7 +31,7 @@ class AIAssistant:
         rules = self._load_file("contexts/rules.txt")
         with open("contexts/assistant_assets.json", 'r', encoding='utf-8') as f:
             data = json.dumps(json.load(f), ensure_ascii=False)
-        return f"{intro}\n{rules}\n{data}"
+        return f"{intro}\n{rules}\n\n<clinic_data>\n{data}\n</clinic_data>"
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> list[str]:
         # Handle Reset Command
@@ -60,7 +60,7 @@ class AIAssistant:
                 
                 # Add to history manually so the transcript makes sense later
                 history.append(HumanMessage(content=user_message))
-                msg = "תודה. על מנת שניקול תוכל לחזור אליך, מה מספר הטלפון שלך?"
+                msg = "תודה. מה מספר הטלפון?"
                 history.append(AIMessage(content=msg))
                 return [msg]
 
@@ -92,7 +92,7 @@ class AIAssistant:
                         "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
                     })
                 except (IndexError, AttributeError):
-                    return ["אני מצטער, הייתה בעיה בעיבוד התמונה. אנא נסה שוב."]
+                    return ["אני מצטערת, הייתה בעיה בעיבוד התמונה. אפשר לנסות שוב בבקשה?."]
             
             if not content_parts:
                 return ["לא התקבלה הודעה."]
@@ -135,9 +135,6 @@ class AIAssistant:
                 # --- Standard Logic ---
                 elif action == "FORWARD_TO_NIKOL":
                     self.session_manager.update_state(sender_id, 'COLLECTING_NAME')
-                    follow_up = "אני רואה שזה מקרה שניקול צריכה לבחון אישית. איך קוראים לך?"
-                    messages_to_send.append(follow_up)
-                    history.append(AIMessage(content=follow_up))
                 
                 else:
                     follow_up_message = self._execute_standard_action(action)

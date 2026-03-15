@@ -29,8 +29,13 @@ COPY pyproject.toml uv.lock ./
 
 # Install dependencies
 RUN uv sync --frozen --no-install-project
+RUN uv pip install python-bidi
 
 FROM python:3.11-slim
+
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 
 # Create the user
 RUN useradd --create-home appuser
@@ -49,4 +54,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 EXPOSE 5000
 
 # Run Gunicorn
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-w", "1", "--threads", "4", "--timeout", "120", "-b", "0.0.0.0:5000", "app:app"]
