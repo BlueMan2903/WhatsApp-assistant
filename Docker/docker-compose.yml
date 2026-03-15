@@ -1,15 +1,13 @@
 services:
   assistant-backend:
-    # CHANGED: Now uses the ${TAG} variable. 
-    # The ':-latest' part means "if no tag is provided, default to latest" (safety net).
     image: blueman2903/lola-backend:${TAG:-latest}
-    
     container_name: assistant-backend
     restart: always
     ports:
       - "5000:5000"
+    # NEW: Use a variable with a fallback to .env
     env_file:
-      - ../.env
+      - ${ENV_FILE_PATH:-.env}
 
   ngrok:
     image: ngrok/ngrok:alpine
@@ -22,5 +20,6 @@ services:
       - "4040:4040"
     depends_on:
       - assistant-backend
+    # NEW: Use a variable with a fallback to .env
     env_file:
-      - ../.env
+      - ${ENV_FILE_PATH:-.env}
