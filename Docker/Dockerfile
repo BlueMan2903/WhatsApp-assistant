@@ -1,10 +1,7 @@
 # Docker/Dockerfile
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
-# --- FIX: Install Build Essentials AND libffi-dev ---
-# build-essential: for GCC
-# libffi-dev: for compiling cffi (required by google-auth/cryptography)
-# curl: for downloading tools if needed
+# Install Build Essentials
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
@@ -18,24 +15,24 @@ RUN pip install uv
 RUN useradd --create-home appuser
 WORKDIR /home/appuser
 
-# Force uv to use the System Python (3.11)
-ENV UV_PYTHON=python3.11
+# Force uv to use the correct environment path
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
 
 # Create the venv explicitly
 RUN uv venv /opt/venv --python 3.11
 
+# Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
+# Install dependencies - this now includes python-bidi from your lockfile
 RUN uv sync --frozen --no-install-project
-RUN uv pip install python-bidi
 
 FROM python:3.11-slim
 
+# PATCH HIGH VULNERABILITIES & FIX LOCALE
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Create the user
 RUN useradd --create-home appuser
@@ -53,5 +50,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Expose the Flask port
 EXPOSE 5000
 
-# Run Gunicorn
+# Run Gunicorn with threading and extended timeout
+# -w 1: Single master worker
+# --threads 4: Handles concurrent I/O (like large image uploads)
+# --timeout 120: Prevents worker suicide during slow transfers
 CMD ["gunicorn", "-w", "1", "--threads", "4", "--timeout", "120", "-b", "0.0.0.0:5000", "app:app"]
