@@ -77,6 +77,42 @@ def chat_api():
         # Send a user-friendly error message back to the frontend
         error_message = "אני מצטערת, יש כרגע תקלה במערבת. תוכלי להמתין דקה?"
         return jsonify({"response": error_message}), 500
+    
+
+@app.route("/history", methods=['POST'])
+def chat_history():
+    data = request.get_json()
+    sender_id = data.get('sender_id')
+    if not sender_id:
+        return jsonify({"error": "sender_id is required."}), 400
+
+    session = session_manager.get_session(sender_id)
+    if not session:
+        return jsonify({"history": []})
+
+    # Convert LangChain messages to a simple format for the frontend
+    # We skip SystemMessages because the user shouldn't see the internal rules
+    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+    
+    history_to_send = []
+    for msg in session['history']:
+        if isinstance(msg, SystemMessage):
+            continue
+        
+        role = 'assistant' if isinstance(msg, AIMessage) else 'user'
+        content = msg.content
+        
+        # If content is a list (multimodal), find the text part
+        if isinstance(content, list):
+            text_parts = [part['text'] for part in content if part.get('type') == 'text']
+            content = " ".join(text_parts)
+            
+        history_to_send.append({
+            "role": role,
+            "text": content
+        })
+
+    return jsonify({"history": history_to_send})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
