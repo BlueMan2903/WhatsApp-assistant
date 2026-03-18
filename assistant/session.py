@@ -1,69 +1,89 @@
-# assistant/session.py
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
+import sqlite3
+import json
+import os
+from langchain_core.messages import (
+    SystemMessage, HumanMessage, AIMessage, BaseMessage, 
+    messages_from_dict, messages_to_dict
+)
 
 class ConversationManager:
-    """Manages conversation sessions for multiple users, including state."""
-    def __init__(self):
-        self._sessions = {}
+    def __init__(self, db_path="data/sessions.db"):
+        self.db_path = db_path
+        # Ensure the data directory exists for the SQLite file
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _init_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS sessions (
+                    session_id TEXT PRIMARY KEY,
+                    history TEXT,
+                    state TEXT,
+                    user_name TEXT,
+                    user_phone TEXT,
+                    price_menu_sent INTEGER DEFAULT 0
+                )
+            ''')
 
     def get_session(self, session_id: str):
-        return self._sessions.get(session_id)
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT history, state FROM sessions WHERE session_id = ?", (session_id,)
+            ).fetchone()
+            if row:
+                return {
+                    'history': messages_from_dict(json.loads(row[0])),
+                    'state': row[1]
+                }
+        return None
 
-    def update_state(self, session_id: str, new_state: str):
-        if session_id in self._sessions:
-            self._sessions[session_id]['state'] = new_state
-
-    # --- NEW: Methods to store Name/Phone ---
-    def update_data(self, session_id: str, key: str, value: str):
-        """Stores auxiliary data like name or phone number."""
-        if session_id in self._sessions:
-            self._sessions[session_id][key] = value
-
-    def get_data(self, session_id: str, key: str):
-        """Retrieves auxiliary data."""
-        return self._sessions.get(session_id, {}).get(key)
-    # ----------------------------------------
+    def save_history(self, session_id: str, history: list[BaseMessage], state: str):
+        history_json = json.dumps(messages_to_dict(history))
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET history = ?, state = ? WHERE session_id = ?",
+                (history_json, state, session_id)
+            )
 
     def start_new_session(self, session_id: str, system_message: SystemMessage):
-        self._sessions[session_id] = {
-            'history': [system_message],
-            'state': 'AWAITING_INITIAL_QUERY' 
-        }
-        return self._sessions[session_id]
-    
+        initial_greeting = AIMessage(content="שלום, הגעת לקליניקה של ניקול. אני העוזרת שלה, איך אוכל לעזור?")
+        history_json = json.dumps(messages_to_dict([system_message, initial_greeting]))
+        state = 'AWAITING_INITIAL_QUERY'
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO sessions (session_id, history, state) VALUES (?, ?, ?)",
+                (session_id, history_json, state)
+            )
+        return {'history':[system_message, initial_greeting], 'state': state}
+
+    def update_state(self, session_id: str, new_state: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE sessions SET state = ? WHERE session_id = ?", (new_state, session_id))
+
+    def update_data(self, session_id: str, key: str, value: str):
+        allowed_keys = ['user_name', 'user_phone', 'price_menu_sent']
+        if key in allowed_keys:
+            if key == 'price_menu_sent': value = 1 if value else 0
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(f"UPDATE sessions SET {key} = ? WHERE session_id = ?", (value, session_id))
+
+    def get_data(self, session_id: str, key: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
+            if row and key in row.keys():
+                return row[key]
+        return None
+
     def reset_session(self, session_id: str, system_message: SystemMessage):
-        if session_id in self._sessions:
-            self._sessions[session_id]['history'] = [system_message]
-            self._sessions[session_id]['state'] = 'AWAITING_INITIAL_QUERY'
-            # Clear old user data on reset
-            if 'user_name' in self._sessions[session_id]: del self._sessions[session_id]['user_name']
-            if 'user_phone' in self._sessions[session_id]: del self._sessions[session_id]['user_phone']
-            return True
-        return False
-    
+        self.start_new_session(session_id, system_message)
+
     def get_formatted_history(self, session_id: str) -> str:
-        # (This function remains exactly the same as your previous version)
         session = self.get_session(session_id)
-        if not session:
-            return "No session history found."
-        history: list[BaseMessage] = session.get('history', [])
-        formatted_lines = []
-
-        for msg in history:
-            if isinstance(msg, SystemMessage):
-                continue 
-            elif isinstance(msg, HumanMessage):
-                prefix = "User:"
-                if isinstance(msg.content, list):
-                    text_parts = [part['text'] for part in msg.content if part['type'] == 'text']
-                    text = " ".join(text_parts)
-                    if any(part['type'] == 'image_url' for part in msg.content):
-                        text += " [Image Attached]"
-                else:
-                    text = msg.content
-                formatted_lines.append(f"{prefix} {text}")
-            elif isinstance(msg, AIMessage):
-                prefix = "Lola:"
-                formatted_lines.append(f"{prefix} {msg.content}")
-
-        return "\n".join(formatted_lines)
+        if not session: return "No history."
+        lines = []
+        for m in session['history']:
+            if isinstance(m, HumanMessage): lines.append(f"User: {m.content}")
+            elif isinstance(m, AIMessage): lines.append(f"Lola: {m.content}")
+        return "\n".join(lines)

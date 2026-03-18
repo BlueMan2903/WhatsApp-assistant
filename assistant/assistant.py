@@ -11,14 +11,9 @@ class AIAssistant:
     def __init__(self, session_manager: ConversationManager):
         if not config.MODEL_CONFIG["google_api_key"]:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
-        
         self.session_manager = session_manager
         self.system_message_content = self._load_system_message()
-        self.llm = init_chat_model(
-            model=config.MODEL,
-            **config.MODEL_CONFIG
-        )
-        
+        self.llm = init_chat_model(model=config.MODEL, **config.MODEL_CONFIG)
         with open("contexts/assistant_assets.json", 'r', encoding='utf-8') as f:
             self.assets = json.load(f)
 
@@ -34,167 +29,85 @@ class AIAssistant:
         return f"{intro}\n{rules}\n\n<clinic_data>\n{data}\n</clinic_data>"
 
     def get_response(self, sender_id: str, user_message: str, image_url: str = None) -> list[str]:
-        # Handle Reset Command
         if config.RESET_CHAT_ENABLED and user_message.strip().lower() == "/reset":
             system_message = SystemMessage(content=self.system_message_content)
             self.session_manager.reset_session(sender_id, system_message)
             return ["The chat has been reset."]
 
         try:
-            # 1. Initialize or Retrieve Session
             session = self.session_manager.get_session(sender_id)
             if not session:
                 system_message = SystemMessage(content=self.system_message_content)
                 session = self.session_manager.start_new_session(sender_id, system_message)
             
             history = session['history']
-            current_state = session.get('state', 'AWAITING_INITIAL_QUERY')
 
-            # --- 2. INTERCEPT: HANDLE DATA COLLECTION STATES ---
-            # If we are waiting for a Name or Phone, we DO NOT call the main AI logic.
+            # --- DATABASE-AWARE CONTEXT INJECTION ---
+            # Give the AI its "long-term memory" before it thinks.
+            user_name = self.session_manager.get_data(sender_id, 'user_name')
+            identity_context = f"SYSTEM IDENTITY DATA: Name: {user_name if user_name else 'Unknown'}"
             
-            if current_state == 'COLLECTING_NAME':
-                # User just sent their name
-                self.session_manager.update_data(sender_id, 'user_name', user_message)
-                self.session_manager.update_state(sender_id, 'COLLECTING_PHONE')
-                
-                # Add to history manually so the transcript makes sense later
-                history.append(HumanMessage(content=user_message))
-                msg = "תודה. מה מספר הטלפון?"
-                history.append(AIMessage(content=msg))
-                return [msg]
+            # Clean up old identity hints and inject the latest one
+            history = [msg for msg in history if not (isinstance(msg, SystemMessage) and "SYSTEM IDENTITY DATA:" in msg.content)]
+            history.insert(1, SystemMessage(content=identity_context))
 
-            if current_state == 'COLLECTING_PHONE':
-                # User just sent their phone
-                self.session_manager.update_data(sender_id, 'user_phone', user_message)
-                
-                history.append(HumanMessage(content=user_message))
-                
-                # NOW we trigger the actual email and inference
-                final_msg = self._finalize_handoff(sender_id, history)
-                
-                self.session_manager.update_state(sender_id, 'HANDOFF_COMPLETE')
-                history.append(AIMessage(content=final_msg))
-                return [final_msg]
-
-            # --- 3. NORMAL FLOW (AI ANALYSIS) ---
-            
-            # Prepare User Message
+            # --- AI-DRIVEN FLOW (NO PYTHON INTERCEPTION) ---
             content_parts = []
-            if user_message:
-                content_parts.append({"type": "text", "text": user_message})
-            
+            if user_message: content_parts.append({"type": "text", "text": user_message})
             if image_url:
                 try:
                     base64_image = image_url.split(",")[1]
-                    content_parts.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                    })
-                except (IndexError, AttributeError):
-                    return ["אני מצטערת, הייתה בעיה בעיבוד התמונה. אפשר לנסות שוב בבקשה?."]
+                    content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}})
+                except: return ["אני מצטערת, הייתה בעיה בעיבוד התמונה."]
             
-            if not content_parts:
-                return ["לא התקבלה הודעה."]
-                
+            if not content_parts: return ["לא התקבלה הודעה."]
             history.append(HumanMessage(content=content_parts))
         
-            # Call Gemini
             model_response = self.llm.invoke(history)
             ai_content = model_response.content
-            if isinstance(ai_content, list):
-                ai_content = "".join([str(item) for item in ai_content])
-
+            if isinstance(ai_content, list): ai_content = "".join([str(item) for item in ai_content])
             history.append(AIMessage(content=ai_content))
 
-            # --- 4. ACTION PARSING ---
+            # --- PURGE & SAVE ---
+            scrubbed_history = []
+            for msg in history:
+                if isinstance(msg, HumanMessage) and isinstance(msg.content, list):
+                    new_c = [{"type": "text", "text": p['text']} if p['type'] == 'text' else {"type": "text", "text": "[Image Purged]"} for p in msg.content]
+                    scrubbed_history.append(HumanMessage(content=new_c))
+                else: scrubbed_history.append(msg)
+            self.session_manager.save_history(sender_id, scrubbed_history, session.get('state'))
+
+            # --- SIMPLE ACTION PARSING ---
             messages_to_send = []
             
-            # Remove the action tag from the text the user sees, but keep the text!
-            clean_response = re.sub(r'\[ACTION:\s*\w+\s*\]', '', ai_content).strip()
-            if clean_response:
-                messages_to_send.append(clean_response)
+            # Look for a SAVE_NAME tag first
+            save_name_match = re.search(r'\[ACTION: SAVE_NAME: (.*?)\]', ai_content)
+            if save_name_match:
+                name_to_save = save_name_match.group(1).strip()
+                if name_to_save:
+                    self.session_manager.update_data(sender_id, 'user_name', name_to_save)
 
-            action_match = re.search(r'\[ACTION:\s*(\w+)\s*\]', ai_content)
-            if action_match:
-                action = action_match.group(1)
+            # Clean all tags from the response before sending
+            clean_response = re.sub(r'\[ACTION:.*?\]', '', ai_content).strip()
+            if clean_response: messages_to_send.append(clean_response)
 
-                # --- NEW: Smart Price Menu Logic ---
+            # Handle other simple actions
+            other_actions = re.findall(r'\[ACTION: (\w+)\]', ai_content)
+            for action in other_actions:
                 if action == "SEND_PRICE_MENU":
-                    # Only send the image if we haven't sent it in this session yet
                     if not self.session_manager.get_data(sender_id, 'price_menu_sent'):
                         self.session_manager.update_data(sender_id, 'price_menu_sent', True)
-                        
-                        # Append the image as a separate message bubble
-                        img_html = "<img src='/static/nikol-price-menu.jpeg?v=1' class='chat-image-insert' alt='Price Menu' />"
-                        messages_to_send.append(img_html)
-                        
-                        # Log it in history so the bot knows it sent it
-                        history.append(AIMessage(content="[System: Price menu image displayed to user]"))
+                        messages_to_send.append("<img src='/static/nikol-price-menu.jpeg?v=1' class='chat-image-insert' />")
+                elif action == "PROVIDE_BOOKING_LINK":
+                    messages_to_send.append(f"ניתן לקבוע תור בקישור הבא:\n{config.BOOKING_URL}?ref={sender_id}")
+                elif action == "REFER_TO_DIABETES_CLINIC":
+                     messages_to_send.append(self.assets.get("diabetes_referral_he", "אנו ממליצים לפנות למרפאת סוכרת."))
 
-                # --- Standard Logic ---
-                elif action == "FORWARD_TO_NIKOL":
-                    self.session_manager.update_state(sender_id, 'COLLECTING_NAME')
-                
-                else:
-                    follow_up_message = self._execute_standard_action(action)
-                    if follow_up_message:
-                        messages_to_send.append(follow_up_message)
-            
             return messages_to_send
 
         except Exception as e:
-            logger.error(f"Error in get_response for {sender_id}: {e}")
-            raise Exception(f"Assistant failure: {e}")
+            logger.error(f"Error: {e}", exc_info=True)
+            return ["אני מצטערת, יש כרגע תקלה. ניקול תיצור איתך קשר בהקדם."]
 
-    def _execute_standard_action(self, action: str) -> str | None:
-        """Executes simple actions like booking links."""
-        if action == "PROVIDE_BOOKING_LINK":
-            return f"ניתן לקבוע תור דרך הקישור הבא:\n{config.BOOKING_URL}"
-        elif action == "REFER_TO_DIABETES_CLINIC":
-             return self.assets.get("diabetes_referral_he", "אנו ממליצים לפנות למרפאת סוכרת.")
-        return None
-
-    def _finalize_handoff(self, sender_id: str, history: list) -> str:
-        """
-        Called after Name and Phone are collected.
-        1. Infers the 'Reason' from chat history using Gemini.
-        2. Sends the email.
-        3. Returns the final success message to user.
-        """
-        logger.info(f"Finalizing Handoff for {sender_id}")
-        
-        user_name = self.session_manager.get_data(sender_id, 'user_name')
-        user_phone = self.session_manager.get_data(sender_id, 'user_phone')
-
-        # --- INFERENCE STEP ---
-        # We ask Gemini to summarize the chat specifically for Nikol
-        try:
-            summary_prompt = [
-                SystemMessage(content="You are a medical admin assistant. Read the following chat history and summarize the patient's medical complaint in one sentence (in Hebrew or English)."),
-                HumanMessage(content=str(history))
-            ]
-            reason_response = self.llm.invoke(summary_prompt)
-            inferred_reason = reason_response.content
-        except Exception as e:
-            logger.error(f"Failed to infer reason: {e}")
-            inferred_reason = "Could not infer reason from text."
-
-        # --- SEND EMAIL ---
-        try:
-            subject = f"New Lead: {user_name} ({user_phone})"
-            body = (
-                f"A user has been handed off to you via the Web Chat.\n\n"
-                f"Name: {user_name}\n"
-                f"Phone: {user_phone}\n"
-                f"Reason (AI Summary): {inferred_reason}\n\n"
-                f"--- Full Transcript ---\n"
-                f"{self.session_manager.get_formatted_history(sender_id)}"
-            )
-            send_error_email(subject, body)
-            logger.info("Rich Handoff email sent successfully.")
-        except Exception as e:
-            logger.error(f"Failed to send handoff email: {e}")
-
-        # Return final message to user
-        return self.assets.get("handoff_message_he", "קיבלנו את הפרטים, ניקול תיצור איתך קשר בהקדם.")
+    # The _finalize_handoff and _execute_standard_action methods are no longer needed in this flow
+    # but can be kept for future features. For now, they are not called.

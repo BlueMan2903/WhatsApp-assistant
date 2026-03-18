@@ -8,6 +8,8 @@ services:
     # NEW: Use a variable with a fallback to .env
     env_file:
       - ${ENV_FILE_PATH:-.env}
+    volumes:
+      - lola_session_data:/home/appuser/data # Map the internal data folder to an AWS volume
 
   ngrok:
     image: ngrok/ngrok:alpine
@@ -23,3 +25,6 @@ services:
     # NEW: Use a variable with a fallback to .env
     env_file:
       - ${ENV_FILE_PATH:-.env}
+
+volumes:
+  lola_session_data: # Define the volume
