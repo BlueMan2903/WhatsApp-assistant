@@ -1,0 +1,11 @@
+nikolverbitsky.com, www.nikolverbitsky.com {
+    # Tells Caddy where your website files are located inside the container
+    root * /srv
+
+    # Tells Caddy to specifically proxy API calls to the backend
+    reverse_proxy /chat http://assistant-backend:5000
+    reverse_proxy /history http://assistant-backend:5000
+
+    # Tells Caddy to serve static files (like index.html) for all other requests
+    file_server
+}

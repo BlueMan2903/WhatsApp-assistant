@@ -2,28 +2,27 @@
 
 **Lola** is an intelligent, multimodal AI assistant designed for **Nikol Verbitsky's Podiatry Clinic**. It automates the initial patient intake process via a web-based chat interface.
 
-The system uses **Google Gemini (Flash)** for natural language understanding and zero-shot image analysis to screen patients for fungal infections, identifying high-risk cases (bleeding, diabetes) and routing them to the appropriate booking link or manual staff handoff.
+The system uses **Google Gemini** for natural language understanding and zero-shot image analysis to screen patients for fungal infections, plantar warts and ingrown nails, identifying high-risk cases (bleeding, diabetes) and routing them to the appropriate booking link or manual staff handoff.
 
 ---
 
-## 🏗 System Architecture
+## 🏗️ System Architecture
 
-The project operates on a **Split Environment** architecture to support both local development and a live production site on AWS.
+The project is a containerized web application designed for a production environment on AWS Lightsail. It serves both the static frontend and the dynamic API from a single, secure endpoint.
 
 | Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Frontend** | HTML5, Vanilla JS | Hosted on **GitHub Pages** (Production) / Flask (Local). |
-| **Backend** | Python, Flask, Gunicorn | API handling business logic and state. |
+| **Frontend** | HTML5, Vanilla JS | Static files served directly by the Caddy reverse proxy from the host. |
+| **Backend** | Python, Flask, Gunicorn | API handling business logic, AI integration, and session state. |
+| **Reverse Proxy** | **Caddy** | **Handles automated SSL (HTTPS), terminates traffic, and routes requests.** |
 | **AI Model** | LangChain + Google Gemini | Handles conversation flow and image analysis. |
-| **Containerization** | Docker | Encapsulates the backend environment. |
-| **Host** | AWS Lightsail | Runs the Docker container. |
-| **Tunneling** | Ngrok | Exposes the localhost port on AWS to the public web. |
-| **Notifications** | Resend / MailerSend | Sends email alerts for handoffs and errors. |
+| **Session Storage**| **SQLite** | **Stores conversation history persistently in a database file.** |
+| **Containerization** | Docker | Encapsulates the backend, proxy, and their networking. |
+| **Host** | AWS Lightsail | Runs the Docker containers and provides a static IP. |
+| **Notifications** | Resend | Sends email alerts for handoffs and critical errors. |
 
-### The "Environment-Aware" Frontend
-The `index.html` contains smart JavaScript logic to determine the API endpoint dynamically:
-*   **Localhost:** Sends requests to `/chat` (Relative path).
-*   **Production:** Sends requests to `https://stirring-yearly-anteater.ngrok-free.app/chat`.
+### Simplified Frontend
+The `index.html` file now uses **relative paths** for all API calls (e.g., `/chat`, `/history`). This makes the frontend code simple and environment-agnostic, as the Caddy reverse proxy is solely responsible for routing requests.
 
 ---
 
@@ -40,42 +39,16 @@ The AI is programmed with strict `rules.txt` protocols:
 *   **Diabetes (Pills):** Patients on pills are allowed to proceed with standard flows.
 
 ### 3. Action Handling
-*   **Booking Links:** Automatically provides deep links for specific treatments (Ingrown nail, Wart removal, etc.).
-*   **Handoff:** If the AI is unsure, it triggers a `[ACTION: FORWARD_TO_NIKOL]` event, logging the conversation and emailing the clinic owner.
+*   **Booking Links:** Automatically provides deep links for specific treatments.
+*   **Handoff:** If the AI is unsure or for specific queries (e.g., discounts), it triggers an `[ACTION: FORWARD_TO_NIKOL]` event, sending a transcript email to the clinic owner.
 
 ---
 
-## 📂 Project Structure
+## 🛠️ Configuration (.env)
 
-```text
-.
-├── app.py                  # Main Flask entry point (Configured for root template serving)
-├── assistant/
-│   ├── assistant.py        # Core AI logic (LangChain + Gemini)
-│   └── session.py          # In-memory session management
-├── contexts/
-│   ├── prompt.txt          # System Persona
-│   ├── rules.txt           # Medical Logic & Safeguards
-│   └── assistant_assets.json # Booking IDs and Hebrew Messages
-├── Docker/
-│   ├── Dockerfile          # Python 3.11 Slim image config
-│   └── rebuild_and_run.sh  # Automated deployment script
-├── config/
-│   ├── config.py           # Env var loading & URL config
-│   └── logging_config.py   # Logs (excludes Base64 images for privacy)
-├── static/                 # Images & Assets
-├── index.html              # Frontend Client
-└── requirements.txt        # Python Dependencies
-```
-
----
-
-## 🛠 Configuration (.env)
-
-Create a `.env` file in the root directory. **Do not commit this file.**
+Create a `.env` file in the root of the deployment directory on the server (`~/Lola/.env`). **Do not commit this file to Git.**
 
 ```ini
-ENVIRONMENT=testing
 GEMINI_API_KEY=your_google_gemini_key
 RESEND_API_KEY=your_resend_api_key
 SENDER_EMAIL=onboarding@resend.dev
@@ -85,66 +58,66 @@ BOOKING_URL=https://appointments.com/nikol
 
 ---
 
-## 💻 Development Workflow (Local)
-
-Use this mode for writing code, debugging, and testing logic. It uses the Flask development server for hot-reloading.
-
-1.  **Activate Virtual Environment:**
-    ```bash
-    source .venv/bin/activate
-    ```
-2.  **Run the App:**
-    ```bash
-    python app.py
-    ```
-3.  **Access:** Open `http://localhost:5000` in your browser.
-
----
-
 ## ☁️ Deployment Workflow (AWS Production)
 
-Use this mode when updating the live server on AWS Lightsail.
+Deployment is a two-stage process: building the application image locally, then deploying that image on the server.
 
-### Prerequisites
-1.  **Ngrok** must be running in a background session on the AWS machine:
+### Part 1: Build & Push (From your Local Machine)
+When you make changes to the Python application code, you must build a new Docker image and push it to Docker Hub.
+
+1.  **Run the Build Script:** From your local project root, execute:
     ```bash
-    ngrok http --url=stirring-yearly-anteater.ngrok-free.app 5000
+    ./Docker/build_and_push.sh
     ```
-    *(If this window closes, the site goes down).*
+2.  **Copy the Tag:** The script will output a date-based tag (e.g., `2026-03-20-0130`). Copy this tag for the next part.
 
-2.  **Docker** must be installed.
+### Part 2: Deploy (On the AWS Server)
+To update the live application to the new version.
 
-### Deployment Steps
 1.  **SSH into AWS Lightsail.**
-2.  **Pull latest code:**
+2.  **Navigate to the deployment directory:**
     ```bash
-    git pull origin main
+    cd ~/Lola
     ```
-3.  **Run the Build Script:**
-    This script stops the old container, rebuilds the image, and starts the new one.
+3.  **Run the Deployment Script:**
     ```bash
-    ./Docker/rebuild_and_run.sh
+    sudo ./download_and_run.sh
     ```
-4.  **Frontend Updates:**
-    Any changes to `index.html` are deployed automatically via GitHub Pages when you push to `main`.
+4.  **Paste the Tag:** When prompted, paste the image tag you copied from Part 1. The script will pull the new image and restart the stack.
+
+### Frontend Updates
+The frontend is **not** deployed automatically. To update the `index.html` file or static assets (images):
+1.  Modify the files on your local machine.
+2.  Securely copy the files to the server using `scp` or `rsync`.
+    ```bash
+    # Example using scp from your local machine
+    scp -i /path/to/key.pem index.html ubuntu@YOUR_IP:~/Lola/frontend/
+    ```
+3.  **Reload Caddy** to purge its cache and serve the new file.
+    ```bash
+    # Run this on the server
+    sudo docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+    ```
 
 ---
 
-## 🛡 Privacy & Logging
+## 🛡️ Privacy & Logging
 *   **Images:** User images are processed in-memory by Gemini and are **not** saved to disk.
-*   **Logs:** The `logging_config.py` explicitly prevents Base64 image strings from writing to `whatsapp_messages.log` to save space and maintain privacy.
-*   **Sessions:** Currently stored in-memory (`session.py`). If the container restarts, active conversations are reset.
+*   **Logs:** Application logs are containerized. View backend logs with `sudo docker logs assistant-backend` and proxy logs with `sudo docker logs caddy-proxy`.
+*   **Sessions:** Conversations are stored persistently in a **SQLite database** located in a Docker volume (`lola_session_data`), ensuring history is retained across container restarts.
 
 ---
 
 ## ❓ Troubleshooting
 
-**Q: The website says "Lola is typing..." but never responds.**
-*   **Check Ngrok:** Is the Ngrok terminal window still open on the AWS machine?
-*   **Check Docker:** Run `docker logs lola-assistant` to see if the Python app crashed.
+**Q: The website says "I couldn't connect to the server."**
+*   **Check the Backend:** Is the backend container running? Run `sudo docker ps`. If `assistant-backend` is not running or is restarting, check its logs: `sudo docker logs assistant-backend`.
+*   **Check the Proxy:** Are there errors in the Caddy logs? Run `sudo docker logs caddy-proxy`.
 
-**Q: I updated `index.html` but don't see changes.**
-*   GitHub Pages can take 1-2 minutes to update. Try doing a "Hard Refresh" (Ctrl+F5) in your browser.
+**Q: The website isn't loading at all (e.g., 404 error, connection timed out).**
+*   **Check DNS:** Use a tool like [dnschecker.org](https://dnschecker.org/) to confirm your domain's A record is pointing to the correct Lightsail Static IP.
+*   **Check Firewall:** In the AWS Lightsail console, ensure the "Networking" firewall has rules allowing TCP traffic on ports **80** and **443**.
 
-**Q: "TemplateNotFound: index.html" Error.**
-*   Ensure `app.py` is configured with `template_folder='.'`. The file must be in the root directory.
+**Q: I updated `index.html` but I'm still seeing the old version.**
+*   **Hard Refresh:** Your browser is likely caching the old file. Press **Ctrl+Shift+R** (or **Cmd+Shift+R** on Mac) to force a full reload.
+*   **Reload Caddy:** If a hard refresh doesn't work, ensure you reloaded the Caddy service on the server after uploading the new file (see "Frontend Updates" section).
