@@ -176,12 +176,7 @@
 
             // 3. DEFINE FUNCTIONS
             async function syncHistory() {
-                let apiUrl;
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = '/history';
-                } else {
-                    apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/history';
-                }
+                const apiUrl = '/history';
 
                 try {
                     const response = await fetch(apiUrl, {
@@ -237,19 +232,13 @@
             }
 
             async function sendMessageToServer(message, image) {
-                let apiUrl;
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    apiUrl = '/chat';
-                } else {
-                    apiUrl = 'https://stirring-yearly-anteater.ngrok-free.app/chat';
-                }
+                const apiUrl = '/chat';
                 addMessage("לולה מקלידה...", "assistant", null, true);
                 try {
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'ngrok-skip-browser-warning': 'true'
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ sender_id: senderId, message: message, image: image }),
                     });

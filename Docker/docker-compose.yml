@@ -3,28 +3,27 @@ services:
     image: blueman2903/lola-backend:${TAG:-latest}
     container_name: assistant-backend
     restart: always
-    ports:
-      - "5000:5000"
-    # NEW: Use a variable with a fallback to .env
     env_file:
       - ${ENV_FILE_PATH:-.env}
     volumes:
-      - lola_session_data:/home/appuser/data # Map the internal data folder to an AWS volume
+      - lola_session_data:/home/appuser/data
 
-  ngrok:
-    image: ngrok/ngrok:alpine
-    container_name: ngrok-sidecar
+  caddy:
+    image: caddy:alpine
+    container_name: caddy-proxy
     restart: always
-    command: http --url=stirring-yearly-anteater.ngrok-free.app assistant-backend:5000
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
-      - "4040:4040"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /home/ubuntu/Lola/Caddyfile:/etc/caddy/Caddyfile
+      - /home/ubuntu/Lola/frontend:/srv
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - assistant-backend
-    # NEW: Use a variable with a fallback to .env
-    env_file:
-      - ${ENV_FILE_PATH:-.env}
 
 volumes:
-  lola_session_data: # Define the volume
+  lola_session_data:
+  caddy_data:
+  caddy_config:

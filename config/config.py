@@ -9,9 +9,6 @@ MODEL_CONFIG = {
     "google_api_key": os.getenv("GEMINI_API_KEY")
 }
 
-# (Optional) Reference command, logic doesn't use this directly but good for docs
-NGROK_COMMAND = "ngrok http --url=stirring-yearly-anteater.ngrok-free.app 5000"
-
 # --- Booking ---
 BOOKING_URL = os.getenv("BOOKING_URL")
 
